@@ -33,6 +33,8 @@ class RenameAirportController extends Controller
         $airport = Airport::where('identifier', $request->airport)->first();
         if (!$airport)
             return redirect()->back()->with(['error' => 'Airport not found']);
+        else if ($airport->identifier == 'AYMR')
+            return redirect()->back()->with(['error' => 'Cannot rename default airport']); // AYMR is hardcoded in multiple locations
 
         if (Pirep::whereNotIn('state', [PirepState::ACCEPTED, PirepState::REVIEW])
             ->where(function ($q) use ($airport) {
@@ -50,6 +52,8 @@ class RenameAirportController extends Controller
                 $airport->identifier = $newIcao;
                 $airport->save();
 
+                // No longer needed - handled by db foreign keys
+                /*
                 DB::update("UPDATE aircraft SET current_airport_id = ? WHERE current_airport_id = ?", [$newIcao, $oldIcao]);
                 DB::update("UPDATE aircraft SET hub_id = ? WHERE hub_id = ?", [$newIcao, $oldIcao]);
 
@@ -65,7 +69,7 @@ class RenameAirportController extends Controller
                 DB::update("UPDATE tour_checkpoint_users SET `checkpoint` = ? WHERE `checkpoint` = ?", [$newIcao, $oldIcao]);
                 DB::update("UPDATE tour_users SET `next_checkpoint` = ? WHERE `next_checkpoint` = ?", [$newIcao, $oldIcao]);
 
-                DB::update("UPDATE users SET current_airport_id = ? WHERE current_airport_id = ?", [$newIcao, $oldIcao]);
+                DB::update("UPDATE users SET current_airport_id = ? WHERE current_airport_id = ?", [$newIcao, $oldIcao]);*/
 
             });
         }
