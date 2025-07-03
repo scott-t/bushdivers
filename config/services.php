@@ -35,4 +35,7 @@ return [
         'url' => env('WEATHER_API_URL'),
     ],
 
+    'googleai' => [
+        'key' => env('GOOGLE_AI_KEY'),
+    ],
 ];
