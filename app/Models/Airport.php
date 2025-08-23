@@ -15,6 +15,14 @@ class Airport extends Model
         'point'
     ];
 
+    protected static function booted(): void
+    {
+        static::addGlobalScope('baseOnly', function (Builder $builder) {
+            $builder->where('is_thirdparty', false)
+                    ->whereNull('user_id');
+        });
+    }
+
     public function hubContracts()
     {
         return $this->hasMany(Contract::class, 'airport', 'identifier');
@@ -25,6 +33,18 @@ class Airport extends Model
         return $this->hasMany(Aircraft::class, 'hub_id', 'identifier');
     }
 
+    public function scopeWithRangeTo(Builder $query, Airport|Coordinate $to)
+    {
+        // Distances in NM
+
+        // Duplicating the calc fields keeps it as simple select without subqueries, etc
+        $lat = $to instanceof Coordinate ? $to->getLat() : $to->lat;
+        $lon = $to instanceof Coordinate ? $to->getLng() : $to->lon;
+
+        return $query
+            ->selectRaw('airports.*, 3440 * ACOS(COS(RADIANS(?)) * COS(RADIANS(lat)) * COS(RADIANS(?) - RADIANS(lon)) + SIN(RADIANS(?)) * SIN(RADIANS(lat))) as distance', [$lat, $lon, $lat]);
+    }
+
     public function scopeInRangeOf(Builder $query, Airport|Coordinate $from, $min, $max)
     {
         // Distances in NM
@@ -33,9 +53,9 @@ class Airport extends Model
         $lat = $from instanceof Coordinate ? $from->getLat() : $from->lat;
         $lon = $from instanceof Coordinate ? $from->getLng() : $from->lon;
 
-        $query
-            ->selectRaw('airports.*, 3440 * ACOS(COS(RADIANS(?)) * COS(RADIANS(lat)) * COS(RADIANS(?) - RADIANS(lon)) + SIN(RADIANS(?)) * SIN(RADIANS(lat))) as distance', [$lat, $lon, $lat])
-            ->whereRaw('3440 * ACOS(COS(RADIANS(?)) * COS(RADIANS(lat)) * COS(RADIANS(?) - RADIANS(lon)) + SIN(RADIANS(?)) * SIN(RADIANS(lat))) between ? AND ?', [$lat, $lon, $lat, $min, $max]);
+        $query->withRangeTo($from)
+            //->selectRaw('airports.*, 3440 * ACOS(COS(RADIANS(?)) * COS(RADIANS(lat)) * COS(RADIANS(?) - RADIANS(lon)) + SIN(RADIANS(?)) * SIN(RADIANS(lat))) as distance', [$lat, $lon, $lat])
+            ->whereRaw('FLOOR(3440 * ACOS(COS(RADIANS(?)) * COS(RADIANS(lat)) * COS(RADIANS(?) - RADIANS(lon)) + SIN(RADIANS(?)) * SIN(RADIANS(lat)))) between ? AND (? - 0.001)', [$lat, $lon, $lat, $min, $max]);
     }
 
     public function scopeHub(Builder $query)
