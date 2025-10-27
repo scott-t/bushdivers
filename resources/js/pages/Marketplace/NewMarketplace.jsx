@@ -37,13 +37,32 @@ const AircraftDetailModal = ({ isOpen, onClose, aircraft, buyer }) => {
         <ModalCloseButton />
         <ModalBody pb={6}>
           {aircraft.rental_image && (
-            <Box w="100%" mb={4}>
+            <Box w="100%" mb={4} position="relative">
               <Image
                 w="100%"
                 borderRadius="md"
                 src={aircraft.rental_image}
                 alt={aircraft.name}
               />
+              {aircraft.manufacturer?.logo_url && (
+                <Box
+                  position="absolute"
+                  top={2}
+                  right={2}
+                  bg="white"
+                  borderRadius="md"
+                  p={2}
+                  boxShadow="lg"
+                >
+                  <Image
+                    src={aircraft.manufacturer.logo_url}
+                    alt={aircraft.manufacturer.name}
+                    height="40px"
+                    maxW="80px"
+                    objectFit="contain"
+                  />
+                </Box>
+              )}
             </Box>
           )}
           <Box mb={4}>
@@ -127,6 +146,8 @@ const AircraftDetailModal = ({ isOpen, onClose, aircraft, buyer }) => {
 }
 
 const AircraftCard = ({ aircraft, onClick }) => {
+  const displayImage = aircraft.rental_image || aircraft.image_url
+
   return (
     <Card
       cursor="pointer"
@@ -134,20 +155,40 @@ const AircraftCard = ({ aircraft, onClick }) => {
       _hover={{ shadow: 'lg', transform: 'translateY(-2px)' }}
       transition="all 0.2s"
     >
-      <CardBody>
-        {aircraft.rental_image && (
-          <Box w="100%" mb={3}>
+      <CardBody p={0}>
+        {displayImage && (
+          <Box w="100%" position="relative">
             <Image
               w="100%"
               h="200px"
               objectFit="cover"
               borderRadius="md"
-              src={aircraft.rental_image}
+              borderBottomRadius="0"
+              src={displayImage}
               alt={aircraft.name}
             />
+            {aircraft.manufacturer?.logo_url && (
+              <Box
+                position="absolute"
+                top={2}
+                right={2}
+                bg="white"
+                borderRadius="md"
+                p={1.5}
+                boxShadow="md"
+              >
+                <Image
+                  src={aircraft.manufacturer.logo_url}
+                  alt={aircraft.manufacturer.name}
+                  height="30px"
+                  maxW="60px"
+                  objectFit="contain"
+                />
+              </Box>
+            )}
           </Box>
         )}
-        <Box>
+        <Box p={4}>
           <Heading size="md" mb={2}>
             {aircraft.name}
           </Heading>
