@@ -148,7 +148,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // marketplace
-    Route::get('/marketplace/{buyer}', \App\Http\Controllers\MarketPlace\ShowMarketPlaceController::class)
+    Route::get('/marketplace/{buyer}', \App\Http\Controllers\MarketPlace\ShowNewMarketPlaceController::class)
         ->name('marketplace');
     Route::get('/marketplace/list/{manufacturer}/{buyer}', \App\Http\Controllers\MarketPlace\ShowManufacturerController::class)
         ->name('marketplace.manufacture');
@@ -210,6 +210,20 @@ Route::middleware('auth')->group(function () {
             ->name('admin.aircraft.delete');
         Route::post('/admin/fleet/upload', \App\Http\Controllers\Admin\Fleet\FleetUploadController::class)
             ->name('admin.fleet.upload');
+
+        // Manufacturer management
+        Route::get('/admin/manufacturers', \App\Http\Controllers\Admin\Manufacturers\ShowManufacturerListController::class)
+            ->name('admin.manufacturers');
+        Route::get('/admin/manufacturers/create', \App\Http\Controllers\Admin\Manufacturers\ShowCreateManufacturerController::class)
+            ->name('admin.manufacturers.create');
+        Route::post('/admin/manufacturers/create', \App\Http\Controllers\Admin\Manufacturers\CreateManufacturerController::class)
+            ->name('admin.manufacturers.store');
+        Route::get('/admin/manufacturers/edit/{id}', \App\Http\Controllers\Admin\Manufacturers\ShowUpdateManufacturerController::class)
+            ->name('admin.manufacturers.edit');
+        Route::post('/admin/manufacturers/edit/{id}', \App\Http\Controllers\Admin\Manufacturers\UpdateManufacturerController::class)
+            ->name('admin.manufacturers.update');
+        Route::get('/admin/manufacturers/delete/{id}', \App\Http\Controllers\Admin\Manufacturers\DeleteManufacturerController::class)
+            ->name('admin.manufacturers.delete');
     });
 
     Route::middleware('role:tour_admin')->group(function () {
