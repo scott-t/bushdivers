@@ -124,6 +124,9 @@ FleetList.layout = (page) => (
     subHeading="Fleet List"
     actions={
       <Flex gap={2}>
+        <Button as={Link} href="/admin/manufacturers" size="sm">
+          Manage Manufacturers
+        </Button>
         <Button as={Link} href="/admin/fleet/create" size="sm">
           Add new fleet
         </Button>
