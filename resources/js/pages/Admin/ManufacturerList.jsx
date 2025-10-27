@@ -91,8 +91,8 @@ const ManufacturerList = ({ manufacturers }) => {
 ManufacturerList.layout = (page) => (
   <AdminLayout
     children={page}
-    heading="Manufacturer Management"
-    subHeading="Manage aircraft manufacturers"
+    heading="Fleet Management"
+    subHeading="Manage Manufacturers"
   />
 )
 

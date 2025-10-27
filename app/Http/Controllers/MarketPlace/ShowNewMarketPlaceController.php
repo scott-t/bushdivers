@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\MarketPlace;
 
 use App\Http\Controllers\Controller;
+use App\Models\Enums\AircraftType;
 use App\Models\Fleet;
 use App\Models\Manufacturer;
 use Illuminate\Http\Request;
@@ -38,13 +39,15 @@ class ShowNewMarketPlaceController extends Controller
 
         // Get unique values for filters
         $sizes = Fleet::where('manufacturer_id', '>', 0)->distinct()->pluck('size')->filter()->sort()->values();
-        $types = Fleet::where('manufacturer_id', '>', 0)->distinct()->pluck('type')->filter()->sort()->values();
+        
+        // Get aircraft types from enum
+        $aircraftTypes = AircraftType::$labels;
 
         return Inertia::render('Marketplace/NewMarketplace', [
             'fleet' => $fleet,
             'manufacturers' => $manufacturers,
             'sizes' => $sizes,
-            'types' => $types,
+            'aircraftTypes' => $aircraftTypes,
             'buyer' => $buyer
         ]);
     }

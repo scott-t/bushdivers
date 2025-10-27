@@ -82,11 +82,9 @@ const ManufacturerEdit = ({ manufacturer }) => {
 ManufacturerEdit.layout = (page) => (
   <AdminLayout
     children={page}
-    heading="Manufacturer Management"
+    heading="Fleet Management"
     subHeading={
-      page.props.manufacturer
-        ? 'Edit existing manufacturer'
-        : 'Add new manufacturer'
+      page.props.manufacturer ? 'Edit Manufacturer' : 'Add Manufacturer'
     }
   />
 )

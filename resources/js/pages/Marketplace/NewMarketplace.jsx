@@ -174,12 +174,18 @@ const AircraftCard = ({ aircraft, onClick }) => {
   )
 }
 
-const NewMarketplace = ({ fleet, manufacturers, sizes, types, buyer }) => {
+const NewMarketplace = ({
+  fleet,
+  manufacturers,
+  sizes,
+  aircraftTypes,
+  buyer,
+}) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedManufacturer, setSelectedManufacturer] = useState('')
   const [selectedFuelType, setSelectedFuelType] = useState('')
   const [selectedSize, setSelectedSize] = useState('')
-  const [selectedType, setSelectedType] = useState('')
+  const [selectedAircraftType, setSelectedAircraftType] = useState('')
   const [selectedAircraft, setSelectedAircraft] = useState(null)
   const { isOpen, onOpen, onClose } = useDisclosure()
 
@@ -200,14 +206,16 @@ const NewMarketplace = ({ fleet, manufacturers, sizes, types, buyer }) => {
 
       const matchesSize = selectedSize === '' || aircraft.size === selectedSize
 
-      const matchesType = selectedType === '' || aircraft.type === selectedType
+      const matchesAircraftType =
+        selectedAircraftType === '' ||
+        aircraft.aircraft_type === parseInt(selectedAircraftType)
 
       return (
         matchesSearch &&
         matchesManufacturer &&
         matchesFuelType &&
         matchesSize &&
-        matchesType
+        matchesAircraftType
       )
     })
   }, [
@@ -216,7 +224,7 @@ const NewMarketplace = ({ fleet, manufacturers, sizes, types, buyer }) => {
     selectedManufacturer,
     selectedFuelType,
     selectedSize,
-    selectedType,
+    selectedAircraftType,
   ])
 
   const handleCardClick = (aircraft) => {
@@ -264,13 +272,13 @@ const NewMarketplace = ({ fleet, manufacturers, sizes, types, buyer }) => {
                   Type
                 </Text>
                 <Select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
+                  value={selectedAircraftType}
+                  onChange={(e) => setSelectedAircraftType(e.target.value)}
                 >
                   <option value="">All</option>
-                  {types.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
+                  {Object.entries(aircraftTypes).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
                     </option>
                   ))}
                 </Select>
@@ -316,7 +324,7 @@ const NewMarketplace = ({ fleet, manufacturers, sizes, types, buyer }) => {
                   setSelectedManufacturer('')
                   setSelectedFuelType('')
                   setSelectedSize('')
-                  setSelectedType('')
+                  setSelectedAircraftType('')
                 }}
               >
                 Clear Filters
