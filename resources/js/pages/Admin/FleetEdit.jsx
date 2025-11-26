@@ -31,6 +31,7 @@ const FleetEdit = ({ fleet, manufacturers }) => {
     name: fleet?.name ?? '',
     manufacturer: fleet?.manufacturer ?? '',
     manufacturer_id: fleet?.manufacturer_id ?? '0',
+    aircraft_type: fleet?.aircraft_type ?? '',
     powerplants: fleet?.powerplants ?? '',
     engines: fleet?.number_of_engines ?? '',
     tbo_mins: fleet?.tbo_mins ?? '0',
@@ -161,6 +162,28 @@ const FleetEdit = ({ fleet, manufacturers }) => {
                   />
                   {errors.manufacturer && (
                     <FormErrorMessage>{errors.manufacturer}</FormErrorMessage>
+                  )}
+                </FormControl>
+                <FormControl isInvalid={errors.aircraft_type}>
+                  <FormLabel htmlFor="aircraft_type">Aircraft Type</FormLabel>
+                  <Select
+                    id="aircraft_type"
+                    value={values.aircraft_type}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Type</option>
+                    <option value="1">Piston Single</option>
+                    <option value="2">Piston Twin</option>
+                    <option value="3">Piston Quad</option>
+                    <option value="4">Turboprop Single</option>
+                    <option value="5">Turboprop Twin</option>
+                    <option value="6">Jet Single</option>
+                    <option value="7">Jet Twin</option>
+                    <option value="8">Heli Single</option>
+                    <option value="9">Heli Twin</option>
+                  </Select>
+                  {errors.aircraft_type && (
+                    <FormErrorMessage>{errors.aircraft_type}</FormErrorMessage>
                   )}
                 </FormControl>
                 <FormControl isInvalid={errors.powerplants}>

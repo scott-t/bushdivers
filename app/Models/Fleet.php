@@ -10,6 +10,14 @@ class Fleet extends Model
 {
     use HasFactory;
 
+    protected $casts = [
+        'aircraft_type' => 'integer',
+    ];
+
+    protected $fillable = [
+        'aircraft_type',
+    ];
+
     public function aircraft()
     {
         return $this->hasMany(Aircraft::class, 'fleet_id', 'id');
