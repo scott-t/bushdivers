@@ -18,7 +18,7 @@ class AirportSyncCommand extends Command
         {--execute : Apply changes immediately}
         {--deactivate : Include deactivations while executing}';
 
-    protected $description = 'Analyse and optionally execute airport sync from a LittleNavMap CSV file';
+    protected $description = 'Analyse airport sync from a LittleNavMap CSV file (dry-run by default, use --execute to apply)';
 
     public function __construct(
         private readonly LnmCsvParser $parser,
