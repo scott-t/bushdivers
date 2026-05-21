@@ -23,11 +23,14 @@ class LnmCsvParser
     private function detectDelimiter(string $filePath): string
     {
         $handle = fopen($filePath, 'r');
-        $line = $handle ? (string) fgets($handle) : '';
 
-        if ($handle) {
-            fclose($handle);
+        if (! $handle) {
+            throw new \RuntimeException("Unable to open CSV file: {$filePath}");
         }
+
+        $line = (string) fgets($handle);
+
+        fclose($handle);
 
         return substr_count($line, ';') > substr_count($line, ',') ? ';' : ',';
     }
@@ -102,6 +105,8 @@ class LnmCsvParser
             return substr($rawCode, 0, 2);
         }
 
+        // Best-effort fallback when LNM export does not include country_code.
+        // This keeps the import resilient but does not guarantee ISO accuracy.
         $letters = preg_replace('/[^A-Za-z]/', '', strtoupper($country));
 
         if (! $letters) {

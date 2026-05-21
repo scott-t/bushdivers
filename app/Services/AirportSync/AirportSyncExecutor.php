@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 class AirportSyncExecutor
 {
+    /** @var array<string, string|null> */
+    private array $flagCache = [];
+
     public function execute(array $results, SimType $simType, bool $includeDeactivations = false): array
     {
         return DB::transaction(function () use ($results, $simType, $includeDeactivations) {
@@ -117,7 +120,7 @@ class AirportSyncExecutor
         $airport->size = $incoming['size'] ?? $airport->size;
 
         if (! empty($incoming['country_code'])) {
-            $airport->flag = Airport::where('country_code', $incoming['country_code'])->first()?->flag;
+            $airport->flag = $this->resolveFlagForCountryCode((string) $incoming['country_code']);
         }
 
         $simTypes = $this->airportSimTypeValues($airport)
@@ -137,7 +140,7 @@ class AirportSyncExecutor
             'location' => $incoming['location'] ?? null,
             'country' => $incoming['country'] ?? null,
             'country_code' => $incoming['country_code'] ?? null,
-            'flag' => ! empty($incoming['country_code']) ? Airport::where('country_code', $incoming['country_code'])->first()?->flag : null,
+            'flag' => ! empty($incoming['country_code']) ? $this->resolveFlagForCountryCode((string) $incoming['country_code']) : null,
             'lat' => $incoming['lat'] ?? 0,
             'lon' => $incoming['lon'] ?? 0,
             'magnetic_variance' => $incoming['magnetic_variance'] ?? 0,
@@ -159,5 +162,20 @@ class AirportSyncExecutor
         return collect($airport->sim_type ?? [])
             ->map(fn ($value) => $value instanceof SimType ? $value->value : (string) $value)
             ->filter();
+    }
+
+    private function resolveFlagForCountryCode(string $countryCode): ?string
+    {
+        $countryCode = strtoupper(trim($countryCode));
+
+        if ($countryCode === '') {
+            return null;
+        }
+
+        if (array_key_exists($countryCode, $this->flagCache)) {
+            return $this->flagCache[$countryCode];
+        }
+
+        return $this->flagCache[$countryCode] = Airport::where('country_code', $countryCode)->value('flag');
     }
 }

@@ -44,6 +44,8 @@ const typeColor = {
   ambiguous_proximity: 'red',
 }
 
+const POLL_INTERVAL_MS = 2000
+
 const decisionsByType = {
   possible_swap: [
     { value: 'rename', label: 'Rename existing' },
@@ -108,7 +110,7 @@ const AirportSync = ({ sessionId: initialSessionId = null }) => {
 
     poll()
 
-    const interval = setInterval(poll, 2000)
+    const interval = setInterval(poll, POLL_INTERVAL_MS)
 
     return () => clearInterval(interval)
   }, [sessionId, status, toast])
