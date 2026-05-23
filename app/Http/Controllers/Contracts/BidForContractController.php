@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Airport;
 use App\Models\Contract;
 use App\Services\Airports\UpdateFuelAtAirport;
-use App\Services\Contracts\GenerateContracts;
-use App\Services\Contracts\StoreContracts;
+use App\Services\Contracts\ContractGenerationOrchestrator;
+use App\Services\Contracts\GenerationMode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,7 +21,7 @@ class BidForContractController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function __invoke(Request $request, UpdateFuelAtAirport $updateFuelAtAirport, GenerateContracts $generateContracts, StoreContracts $storeContracts): JsonResponse
+    public function __invoke(Request $request, UpdateFuelAtAirport $updateFuelAtAirport, ContractGenerationOrchestrator $orchestrator): JsonResponse
     {
         $contract = Contract::with(['depAirport'])->findOrFail($request->id);
         if ($request->action == 'remove') {
@@ -43,7 +43,7 @@ class BidForContractController extends Controller
             $contract->user_id = $request->userId;
             $contract->save();
 
-            // generate return to hub
+            // generate return to hub if none exist
             $airport = Airport::findOrFail($contract->arr_airport_id);
             if (!$airport->is_hub) {
                 $airportContracts = Contract::with('arrAirport')
@@ -55,11 +55,7 @@ class BidForContractController extends Controller
                     ->get();
 
                 if ($airportContracts->count() == 0) {
-                    // generate new contract back to hub
-                    $contracts = $generateContracts->execute($airport, 1, true);
-                    if ($contracts) {
-                        $storeContracts->execute($contracts);
-                    }
+                    $orchestrator->execute($airport, GenerationMode::Outbound, Auth::user());
                 }
             }
             Cache::forget($contract->dep_airport_id.'-contracts');

@@ -98,6 +98,7 @@ class StoreContracts
             $contract->user_id = $user->id;
             if (!empty($contractInfo['is_custom'])) {
                 $contract->is_custom = true;
+                $contract->is_available = false;
             }
         }
 

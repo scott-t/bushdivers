@@ -8,9 +8,8 @@ use App\Models\Airport;
 use App\Models\Contract;
 use App\Models\Enums\AircraftStatus;
 use App\Services\Airports\GetMetarForAirport;
-use App\Services\Contracts\GenerateContracts;
-use App\Services\Contracts\GetNumberToGenerate;
-use App\Services\Contracts\StoreContracts;
+use App\Services\Contracts\ContractGenerationOrchestrator;
+use App\Services\Contracts\GenerationMode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,16 +19,12 @@ use Inertia\Response;
 class ShowAirportController extends Controller
 {
     protected GetMetarForAirport $getMetarForAirport;
-    protected GenerateContracts $generateContracts;
-    protected StoreContracts $storeContracts;
-    protected GetNumberToGenerate $getNumberToGenerate;
+    protected ContractGenerationOrchestrator $orchestrator;
 
-    public function __construct(GetMetarForAirport $getMetarForAirport, GenerateContracts $generateContracts, StoreContracts $storeContracts, GetNumberToGenerate $getNumberToGenerate)
+    public function __construct(GetMetarForAirport $getMetarForAirport, ContractGenerationOrchestrator $orchestrator)
     {
         $this->getMetarForAirport = $getMetarForAirport;
-        $this->generateContracts = $generateContracts;
-        $this->storeContracts = $storeContracts;
-        $this->getNumberToGenerate = $getNumberToGenerate;
+        $this->orchestrator = $orchestrator;
     }
 
     /**
@@ -57,19 +52,9 @@ class ShowAirportController extends Controller
             ->where('status', AircraftStatus::ACTIVE)
             ->get();
 
-        // get contracts
+        // get contracts — JIT top-up via orchestrator
+        $this->orchestrator->execute($airport, GenerationMode::Outbound, Auth::user());
         $contracts = $this->getContracts($airport);
-
-        if ($contracts->count() <= 20) {
-            $numToGenerate = $this->getNumberToGenerate->execute($airport, $contracts->count());
-            if ($numToGenerate > 0) {
-                $newContracts = $this->generateContracts->execute($airport, $numToGenerate);
-                if ($newContracts !== null) {
-                    $this->storeContracts->execute($newContracts);
-                }
-            }
-            $contracts = $this->getContracts($airport);
-        }
 
         $userContracts = Contract::with(['depAirport', 'currentAirport', 'arrAirport'])
             ->where(fn ($q) => $q->where('user_id', Auth::id())->orWhere(fn ($q) => $q->whereNull('user_id')->where('is_shared', true)))

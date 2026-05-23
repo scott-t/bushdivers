@@ -4,22 +4,21 @@ namespace App\Http\Controllers\Contracts;
 
 use App\Http\Controllers\Controller;
 use App\Models\Airport;
-use App\Services\Contracts\GenerateContracts;
-use App\Services\Contracts\GetContractsFromCriteria;
-use Carbon\Carbon;
+use App\Models\Contract;
+use App\Services\Contracts\ContractGenerationOrchestrator;
+use App\Services\Contracts\GenerationMode;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class FindContractsController extends Controller
 {
-    protected GenerateContracts $generateContracts;
+    protected ContractGenerationOrchestrator $orchestrator;
 
-    public function __construct(GenerateContracts $generateContracts)
+    public function __construct(ContractGenerationOrchestrator $orchestrator)
     {
-        $this->generateContracts = $generateContracts;
-        // $this->getContractsFromCriteria = $getContractsFromCriteria;
+        $this->orchestrator = $orchestrator;
     }
 
     /**
@@ -35,25 +34,18 @@ class FindContractsController extends Controller
             return Inertia::render('Contracts/Contracts')->with(['error' => 'Airport not found']);
         }
 
-        $key = $this->buildCacheKey($request->icao, $request->flightLength, $request->aircraftSize);
+        // Ensure contracts are topped up for this airport
+        $this->orchestrator->execute($airport, GenerationMode::Outbound, Auth::user());
 
-        if (Cache::has($key)) {
-            $contracts = Cache::get($key);
-        } else {
-            if ($airport->is_hub) {
-                $numToGenerate = 25;
-            } else {
-                $numToGenerate = $airport->size >= 3 ? 12 : 5;
-            }
-            $contracts = $this->generateContracts->execute($airport, $numToGenerate, $request->flightLength, $request->aircraftSize);
-            Cache::put($key, $contracts, Carbon::now()->secondsUntilEndOfDay());
-        }
+        $user = Auth::user();
+        $contracts = Contract::with(['depAirport', 'arrAirport'])
+            ->whereHas('arrAirport', fn ($q) => $q->forUser($user))
+            ->where('dep_airport_id', $airport->id)
+            ->where('is_available', true)
+            ->whereRaw('expires_at >= Now()')
+            ->orderBy('distance')
+            ->get();
 
-        return Inertia::render('Contracts/Contracts', ['searchedContracts' => $contracts, 'airport' => $airport, 'cacheKey' => $key]);
-    }
-
-    protected function buildCacheKey(string $icao, string $distance, string $size): string
-    {
-        return $icao.'-'.$distance.'-'.$size;
+        return Inertia::render('Contracts/Contracts', ['searchedContracts' => $contracts, 'airport' => $airport]);
     }
 }
