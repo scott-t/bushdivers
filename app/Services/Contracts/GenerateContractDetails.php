@@ -3,6 +3,7 @@
 namespace App\Services\Contracts;
 
 use App\Models\Airport;
+use App\Services\Contracts\Profiles\AirportContractProfile;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -17,11 +18,13 @@ class GenerateContractDetails
     public function execute(Airport $origin, Airport $airport, ?array $preDefinedCargo = null): array
     {
         try {
-            //$contracts = [];
             if ($preDefinedCargo) {
                 $cargo = $preDefinedCargo;
             } else {
-                $cargo = $this->generateContractCargo->execute();
+                // Use a default size-2 profile when called without pre-defined cargo
+                $profile = AirportContractProfile::fromArray(config('contract_profiles.2'));
+                $cargoData = $this->generateContractCargo->execute($profile);
+                $cargo = ['name' => $cargoData->name, 'type' => $cargoData->type, 'qty' => $cargoData->qty];
             }
 
             // get distance and heading

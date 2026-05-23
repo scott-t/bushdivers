@@ -4,6 +4,7 @@ namespace App\Services\Contracts;
 
 use App\Models\Airport;
 use App\Models\Enums\CargoType;
+use App\Models\Enums\ContractType;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -58,11 +59,11 @@ class CreateCustomRoute
                 'cargo_type' => $cargo['type'],
                 'cargo_qty' => $cargo['qty'],
                 'expires_at' => Carbon::now()->addDays(7),
-                'is_fuel' => false
+                'is_fuel' => false,
+                'is_custom' => true,
             ]];
 
-
-            $this->storeContract->execute($data, false, true, $user);
+            $this->storeContract->execute($data, ContractType::General, $user, false, null);
         } catch (ModelNotFoundException $e) {
             throw new ModelNotFoundException();
         }
