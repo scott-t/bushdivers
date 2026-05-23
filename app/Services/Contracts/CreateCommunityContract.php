@@ -6,6 +6,8 @@ use App\Models\Airport;
 use App\Models\CommunityJobContract;
 use App\Models\Enums\CargoType;
 use App\Models\Enums\ContractType;
+use App\Services\Contracts\Data\CargoData;
+use App\Services\Contracts\Data\ContractData;
 use Carbon\Carbon;
 
 class CreateCommunityContract
@@ -20,26 +22,27 @@ class CreateCommunityContract
     {
         $depAirport = Airport::find($job->dep_airport_id);
         $arrAirport = Airport::find($job->arr_airport_id);
-        $cargo = ['name' => $job->cargo, 'type' => $job->cargo_type, 'qty' => $job->cargo_type == CargoType::Cargo ? $job->payload : $job->pax];
 
-        // contract info
+        $cargoType = CargoType::from((int) $job->cargo_type);
+        $qty = $cargoType === CargoType::Cargo ? $job->payload : $job->pax;
+        $cargo = new CargoData($job->cargo, $cargoType, $qty);
+
         $distance = $depAirport->distanceTo($arrAirport);
         $heading = $depAirport->bearingTo($arrAirport);
+        $value = $this->calcContractValue->execute($cargo->type, $cargo->qty, $distance);
 
-        $value = $this->calcContractValue->execute($cargo['type'], $cargo['qty'], $distance);
-        // add contract
-        $data = [[
-            'departure' => $depAirport->identifier,
-            'destination' => $arrAirport->identifier,
-            'distance' => $distance,
-            'heading' => $heading,
-            'contract_value' => $value,
-            'cargo' => $cargo['name'],
-            'cargo_type' => $cargo['type'],
-            'cargo_qty' => $cargo['qty'],
-            'expires_at' => Carbon::now()->addDays(7),
-            'is_fuel' => false
-        ]];
-        $this->storeContracts->execute($data, false, false, null, ContractType::Community, null, true, $job);
+        $contractData = new ContractData(
+            departure: $depAirport,
+            destination: $arrAirport,
+            cargo: $cargo,
+            contractType: ContractType::Community,
+            expiresAt: Carbon::now()->addDays(7),
+            value: $value,
+            distance: $distance,
+            heading: $heading,
+            isShared: true,
+        );
+
+        $this->storeContracts->execute([$contractData], ContractType::Community, null, true, $job);
     }
 }

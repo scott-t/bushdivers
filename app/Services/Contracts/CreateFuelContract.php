@@ -4,6 +4,7 @@ namespace App\Services\Contracts;
 
 use App\Models\Airport;
 use App\Models\Enums\CargoType;
+use App\Models\Enums\ContractType;
 use App\Models\User;
 use App\Services\Airports\UpdateFuelAtAirport;
 use Carbon\Carbon;
@@ -66,7 +67,7 @@ class CreateFuelContract
                 'fuel_type' => $fuelType
             ]];
             $this->updateFuelAtAirport->execute($depAirport, $qty, $fuelType, 'decrement');
-            $this->storeContract->execute($data, false, false, $userId);
+            $this->storeContract->execute($data, ContractType::General, $userId);
         } catch (ModelNotFoundException $e) {
             throw new ModelNotFoundException();
         }
