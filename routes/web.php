@@ -109,6 +109,16 @@ Route::middleware('auth')->group(function () {
             ->name('admin.airports.update');
         Route::delete('/admin/airports/{id}', \App\Http\Controllers\Admin\Airports\DeleteAirportController::class)
             ->name('admin.airports.delete');
+        Route::get('/admin/airports/sync', [\App\Http\Controllers\Admin\Airports\AirportSyncController::class, 'show'])
+            ->name('admin.airports.sync');
+        Route::post('/admin/airports/sync', [\App\Http\Controllers\Admin\Airports\AirportSyncController::class, 'upload'])
+            ->name('admin.airports.sync.upload');
+        Route::get('/admin/airports/sync/{sessionId}/status', [\App\Http\Controllers\Admin\Airports\AirportSyncController::class, 'status'])
+            ->name('admin.airports.sync.status');
+        Route::post('/admin/airports/sync/{sessionId}/resolve', [\App\Http\Controllers\Admin\Airports\AirportSyncController::class, 'resolve'])
+            ->name('admin.airports.sync.resolve');
+        Route::post('/admin/airports/sync/{sessionId}/execute', [\App\Http\Controllers\Admin\Airports\AirportSyncController::class, 'execute'])
+            ->name('admin.airports.sync.execute');
     });
 
     // Tours

@@ -57,6 +57,14 @@ const Airports = ({ airports, bulkUploadResults }) => {
       subHeading="Airport List"
       actions={
         <Flex gap={2}>
+          <Button
+            as={Link}
+            href="/admin/airports/sync"
+            size="sm"
+            variant="outline"
+          >
+            Airport Sync
+          </Button>
           <Button onClick={onBulkUploadOpen} size="sm" variant="outline">
             Bulk Upload Airports
           </Button>
