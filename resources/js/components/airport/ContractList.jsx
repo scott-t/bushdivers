@@ -64,14 +64,16 @@ const ContractList = ({ contracts, myContracts, sharedContracts }) => {
             <Heading size="sm">Available Contracts</Heading>
             <Tag colorScheme="green">Available</Tag>
           </Flex>
-          <Alert cursor="pointer" status="info" mt={2}>
-            <AlertIcon />
-            <Text size="sm">
-              <Link href="/contracts/experimental">
-                Try our experimental contract generator
-              </Link>
-            </Text>
-          </Alert>
+          {auth.user?.user_roles?.includes('ai_dispatch') && (
+            <Alert cursor="pointer" status="info" mt={2}>
+              <AlertIcon />
+              <Text size="sm">
+                <Link href="/contracts/experimental">
+                  Try our experimental contract generator
+                </Link>
+              </Text>
+            </Alert>
+          )}
           {contracts &&
             contracts.map((c) => (
               <ContractDetail

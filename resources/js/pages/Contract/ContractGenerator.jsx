@@ -5,289 +5,235 @@ import {
   Button,
   Card,
   CardBody,
+  Divider,
   Flex,
-  Input,
-  Select,
-  Text,
+  Textarea,
 } from '@chakra-ui/react'
 import { usePage } from '@inertiajs/react'
 import axios from 'axios'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 import ChatBubble from '../../components/elements/experimental/ChatBubble'
 import ChatContainer from '../../components/elements/experimental/ChatContainer'
-import DispatchDetails from '../../components/elements/experimental/DispatchDetails'
-import TypeWriter from '../../components/elements/experimental/TypeWriter'
 import TypingIndicator from '../../components/elements/experimental/TypingIndicator'
 import AppLayout from '../../components/layout/AppLayout'
-import { parseMarkdownJson } from '../../helpers/generic.helpers'
 
-const ContractGenerator = () => {
-  const [showParams, setShowParams] = useState(false)
-  const [showAcceptance, setShowAcceptance] = useState(false)
-  const [showUserAcceptance, setShowUserAcceptance] = useState(false)
-  const [showBooking, setShowBooking] = useState(false)
-  const [showCompleted, setShowCompleted] = useState(false)
-  const [typing, setTyping] = useState(false)
+const AGENT_AVATAR =
+  'https://res.cloudinary.com/dpwytlrc2/image/upload/v1750250580/avatar_svg_iye4pz.svg'
+
+const ContractGenerator = ({
+  latestConversation,
+  conversationLocked,
+  conversationMessages,
+}) => {
   const { auth } = usePage().props
-  const [paramsError, setParamsError] = useState(null)
+  const [messages, setMessages] = useState(conversationMessages || [])
+  const [conversationId, setConversationId] = useState(
+    latestConversation?.id || null
+  )
+  const [inputText, setInputText] = useState('')
+  const [typing, setTyping] = useState(false)
   const [errorText, setErrorText] = useState(null)
-  const [dispatchData, setDispatchData] = useState(null)
-  const [dispatchParams, setdispatchParams] = useState({
-    icaoDep: auth.user.current_airport_id,
-    minSize: null,
-    cargoType: null,
-    maxCargo: null,
-    maxDistance: null,
-    aircraftSize: null,
-  })
+  const [showStartNew, setShowStartNew] = useState(false)
 
-  useEffect(() => {
-    setInterval(() => {
-      setShowParams(true)
-    }, 2)
-  }, [])
+  const messagesEndRef = useRef(null)
+  const scrollContainerRef = useRef(null)
+  const textareaRef = useRef(null)
 
-  const handleChange = (e) => {
-    setdispatchParams({
-      ...dispatchParams,
-      [e.target.id]: e.target.value,
+  const isNearBottom = () => {
+    const el = scrollContainerRef.current
+    if (!el) return true
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 120
+  }
+
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: smooth ? 'smooth' : 'auto',
     })
   }
 
-  const submitDispatchRequest = async () => {
-    setParamsError(null)
-    if (
-      dispatchParams.cargoType === null ||
-      dispatchParams.icaoDep === null ||
-      dispatchParams.maxCargo === null ||
-      dispatchParams.maxDistance === null
-    ) {
-      setParamsError('Please ensure all fields are set')
-    } else {
-      setTyping(true)
-      try {
-        const response = await axios.post(
-          `/api/contracts/experimental`,
-          dispatchParams
-        )
-        if (response.status === 200) {
-          let md = response.data.contract.candidates[0].content.parts[0].text
-          const jsonData = parseMarkdownJson(md)
-          setDispatchData({
-            contract: jsonData,
-            departureAirport: response.data.departure,
-            destinationAirport: response.data.destination,
-          })
-          setInterval(() => {
-            setShowAcceptance(true)
-          }, 3000)
-        }
-      } catch (e) {
-        setErrorText('We seem to have run into a problem.')
+  // Auto-scroll when new messages arrive, but only if user has not scrolled away
+  useEffect(() => {
+    if (isNearBottom()) {
+      scrollToBottom(false)
+    }
+  }, [messages])
+
+  // When a response finishes, always scroll so the reply is visible
+  useEffect(() => {
+    if (!typing) {
+      scrollToBottom(true)
+    }
+  }, [typing])
+
+  const handleStartNew = () => {
+    setMessages([])
+    setConversationId(null)
+    setShowStartNew(false)
+  }
+
+  const handleSend = async () => {
+    const text = inputText.trim()
+    if (!text || typing) return
+
+    setInputText('')
+    setErrorText(null)
+
+    setMessages((prev) => [...prev, { role: 'user', content: text }])
+
+    setTyping(true)
+
+    try {
+      const response = await axios.post('/api/contracts/experimental/chat', {
+        message: text,
+        conversation_id: conversationId,
+      })
+
+      if (response.status === 200) {
+        setConversationId(response.data.conversation_id)
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: response.data.message },
+        ])
       }
-      setTyping(false)
+    } catch (e) {
+      setErrorText('We seem to have run into a problem.')
+    }
+
+    setTyping(false)
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
     }
   }
 
-  const submitAcceptance = (status) => {
-    if (status === false) {
-      location.reload()
-    } else {
-      setShowUserAcceptance(true)
-      setTyping(true)
-      setInterval(() => {
-        setTyping(false)
-        setShowBooking(true)
-      }, 1000)
-      setInterval(() => {
-        setTyping(false)
-        setShowCompleted(true)
-      }, 3000)
+  const handleInputChange = (e) => {
+    setInputText(e.target.value)
+
+    // Clear error when user starts typing again
+    if (errorText) {
+      setErrorText(null)
     }
+
+    // Auto-grow textarea up to 160px
+    const el = textareaRef.current
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = `${Math.min(el.scrollHeight, 160)}px`
+    }
+  }
+
+  // Empty state — no conversation started
+  if (!messages.length && !showStartNew) {
+    return (
+      <Card>
+        <CardBody>
+          <ChatContainer side="left">
+            <Avatar size="sm" name="agent" src={AGENT_AVATAR} />
+            <ChatBubble>
+              Hey! I hear you&apos;re looking for some work? Want me to find you
+              a dispatch?
+            </ChatBubble>
+          </ChatContainer>
+          <Flex mt={4} justify="center">
+            <Button size="sm" onClick={() => setShowStartNew(true)}>
+              Start New Conversation
+            </Button>
+          </Flex>
+        </CardBody>
+      </Card>
+    )
   }
 
   return (
-    <>
-      <Card>
-        <CardBody>
-          {errorText && <Alert status="error">{errorText}</Alert>}
-          <ChatContainer side="left">
-            <Avatar
-              size="sm"
-              name="agent"
-              src="https://res.cloudinary.com/dpwytlrc2/image/upload/v1750250580/avatar_svg_iye4pz.svg"
-            />
-            <ChatBubble>
-              <TypeWriter text="Heey! I hear you're looking for some work? Set your parameters below and I can get a dispatch sorted for you." />
-            </ChatBubble>
-          </ChatContainer>
-          {showParams && (
-            <ChatContainer side="right">
-              <ChatBubble isUser side="right">
-                <Input
-                  mb={1}
-                  inline
-                  id="icaoDep"
-                  value={dispatchParams.icaoDep}
-                  size="xs"
-                  type="text"
-                  onChange={handleChange}
-                  placeholder="Departure ICAO"
-                />
-                <Input
-                  mb={1}
-                  inline
-                  id="minSize"
-                  value={dispatchParams.minSize}
-                  size="xs"
-                  type="text"
-                  onChange={handleChange}
-                  placeholder="min airport size (0-5)"
-                />
-                <Select
-                  my={1}
-                  size="xs"
-                  id="cargoType"
-                  value={dispatchParams.cargoType}
-                  onChange={handleChange}
-                  placeholder="Select cargo type"
-                >
-                  <option value="cargo">Cargo</option>
-                  <option value="pax">PAX</option>
-                </Select>
-                <Input
-                  my={1}
-                  inline
-                  id="maxCargo"
-                  value={dispatchParams.maxCargo}
-                  size="xs"
-                  type="text"
-                  onChange={handleChange}
-                  placeholder={`${
-                    dispatchParams.cargoType === null
-                      ? 'Select cargo type'
-                      : dispatchParams.cargoType === 'cargo'
-                        ? 'Max Cargo (lbs)'
-                        : 'Max PAX'
-                  }`}
-                />
-                <Input
-                  my={1}
-                  inline
-                  id="maxDistance"
-                  value={dispatchParams.maxDistance}
-                  size="xs"
-                  type="text"
-                  onChange={handleChange}
-                  placeholder="Max Distances (nm)"
-                />
-                <Select
-                  my={1}
-                  size="xs"
-                  id="aircraftSize"
-                  value={dispatchParams.aircraftSize}
-                  onChange={handleChange}
-                  placeholder="Select aircraft size"
-                >
-                  <option value="small">Small</option>
-                  <option value="medium">Medium</option>
-                  <option value="large">Large</option>
-                </Select>
-                {paramsError && (
-                  <Text fontSize="xs" color="red.500">
-                    {paramsError}
-                  </Text>
-                )}
-                <Button size="xs" onClick={() => submitDispatchRequest()}>
-                  Request Job
-                </Button>
-              </ChatBubble>
-              <Avatar size="sm" name={auth.user.name} />
-            </ChatContainer>
-          )}
-          {dispatchData && (
-            <>
-              <ChatContainer side="left">
-                <Avatar
-                  size="sm"
-                  name="agent"
-                  src="https://res.cloudinary.com/dpwytlrc2/image/upload/v1750250580/avatar_svg_iye4pz.svg"
-                />
-                <ChatBubble>
-                  <DispatchDetails dispatchDetails={dispatchData} />
-                </ChatBubble>
-              </ChatContainer>
-            </>
-          )}
-          {showAcceptance && (
-            <>
-              <ChatContainer side="left">
-                <Avatar
-                  size="sm"
-                  name="agent"
-                  src="https://res.cloudinary.com/dpwytlrc2/image/upload/v1750250580/avatar_svg_iye4pz.svg"
-                />
-                <ChatBubble side="left">
-                  <TypeWriter text="Woould you like to accept?" />
-                </ChatBubble>
-              </ChatContainer>
-              <Flex gap={2} mt={2} ml={24} justify="flex-start">
-                <Button
-                  size="xs"
-                  colorScheme="gray"
-                  onClick={() => submitAcceptance(false)}
-                >
-                  Decline
-                </Button>
-                <Button size="xs" onClick={() => submitAcceptance(true)}>
-                  Accept
-                </Button>
-              </Flex>
-            </>
-          )}
+    <Card>
+      <CardBody>
+        {errorText && <Alert status="error">{errorText}</Alert>}
 
-          {showUserAcceptance && (
-            <>
-              <ChatContainer side="right">
-                <ChatBubble isUser side="right">
-                  Yes please!
-                </ChatBubble>
+        {conversationLocked && (
+          <Alert status="info" mb={4}>
+            This conversation is locked because a new PIREP has been filed
+            since. Start a new conversation to continue.
+          </Alert>
+        )}
+
+        <Box
+          ref={scrollContainerRef}
+          maxH="60vh"
+          overflowY="auto"
+          mb={4}
+          className="chat-thread"
+          display="flex"
+          flexDirection="column"
+          gap={4}
+        >
+          {messages.map((msg, idx) => (
+            <ChatContainer
+              key={idx}
+              side={msg.role === 'user' ? 'right' : 'left'}
+            >
+              {msg.role === 'assistant' && (
+                <Avatar size="sm" name="agent" src={AGENT_AVATAR} />
+              )}
+              <ChatBubble isUser={msg.role === 'user'}>
+                <Box whiteSpace="pre-wrap">{msg.content}</Box>
+              </ChatBubble>
+              {msg.role === 'user' && (
                 <Avatar size="sm" name={auth.user.name} />
-              </ChatContainer>
-            </>
-          )}
-
-          {showBooking && (
+              )}
+            </ChatContainer>
+          ))}
+          {typing && (
             <ChatContainer side="left">
-              <Avatar
-                size="sm"
-                name="agent"
-                src="https://res.cloudinary.com/dpwytlrc2/image/upload/v1750250580/avatar_svg_iye4pz.svg"
-              />
+              <Avatar size="sm" name="agent" src={AGENT_AVATAR} />
               <ChatBubble>
-                <TypeWriter text="Okk! Great, I will get that booked for you!" />
+                <TypingIndicator />
               </ChatBubble>
             </ChatContainer>
           )}
+          <div ref={messagesEndRef} />
+        </Box>
 
-          {showCompleted && (
-            <ChatContainer side="left">
-              <Avatar
-                size="sm"
-                name="agent"
-                src="https://res.cloudinary.com/dpwytlrc2/image/upload/v1750250580/avatar_svg_iye4pz.svg"
-              />
-              <ChatBubble>
-                <TypeWriter text="Thhat's all done! Head over to the dispatch screen to get ready for the flight." />
-              </ChatBubble>
-            </ChatContainer>
-          )}
+        <Divider mb={4} />
 
-          <Box>{typing && <TypingIndicator />}</Box>
-        </CardBody>
-      </Card>
-    </>
+        {!conversationLocked ? (
+          <Flex gap={3} align="flex-end">
+            <Textarea
+              ref={textareaRef}
+              value={inputText}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Request a dispatch..."
+              size="sm"
+              rows={1}
+              resize="none"
+              flex={1}
+              minH="40px"
+              maxH="160px"
+              overflowY="auto"
+            />
+            <Button
+              size="sm"
+              onClick={handleSend}
+              isLoading={typing}
+              isDisabled={!inputText.trim()}
+              flexShrink={0}
+            >
+              Send
+            </Button>
+          </Flex>
+        ) : (
+          <Flex justify="center">
+            <Button size="sm" onClick={handleStartNew}>
+              Start New Conversation
+            </Button>
+          </Flex>
+        )}
+      </CardBody>
+    </Card>
   )
 }
 

@@ -35,7 +35,10 @@ return [
         'url' => env('WEATHER_API_URL'),
     ],
 
-    'googleai' => [
-        'key' => env('GOOGLE_AI_KEY'),
+    'ai' => [
+        'dispatch' => [
+            'provider' => env('DISPATCH_AI_PROVIDER', ''),
+            'model' => env('DISPATCH_AI_MODEL', ''),
+        ],
     ],
 ];

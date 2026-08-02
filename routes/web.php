@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Enums\RoleNames;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -161,7 +162,8 @@ Route::middleware('auth')->group(function () {
         ->name('marketplace.sell');
 
     // experimental contracts
-    Route::get('/contracts/experimental', \App\Http\Controllers\Contracts\Experimental\ShowContractGeneratorController::class)
+    Route::middleware('role:' . RoleNames::AI_DISPATCH->value)
+        ->get('/contracts/experimental', \App\Http\Controllers\Contracts\Experimental\ShowContractGeneratorController::class)
         ->name('contracts.generator');
 
     // Flights

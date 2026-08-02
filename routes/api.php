@@ -57,4 +57,7 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->name('airport.search');
 
     Route::post('/contracts/split', \App\Http\Controllers\Contracts\SplitContractController::class)->name('contracts.split');
+
+    Route::post('/contracts/experimental/chat', \App\Http\Controllers\Contracts\Experimental\ChatContractGeneratorController::class)
+        ->name('request.generator.chat');
 });
