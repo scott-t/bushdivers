@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Users;
 
 use App\Http\Controllers\Controller;
+use App\Models\Enums\FeatureFlags;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class ShowUsersController extends Controller
 
         $users->makeVisible(['msfs_username', 'discord_username', 'is_admin', 'user_roles']);
 
+        // Or pull from the RoleName enum. Although this way we can assign metadata (like sorting roles->feature flags)
         $roles = Role::orderBy('role')->get();
 
         return Inertia::render('Admin/Users', [

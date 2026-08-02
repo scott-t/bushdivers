@@ -2,6 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Enums\RoleNames;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
+use Laravel\Ai\Concerns\HasConversations;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -21,6 +25,7 @@ class User extends Authenticatable
     use HasFactory;
     use HasApiTokens;
     use Notifiable;
+    use HasConversations;
 
     protected $fillable = [
         'name',
@@ -60,77 +65,6 @@ class User extends Authenticatable
         'user_roles',
         'balance'
     ];
-
-    /**
-     * @return Attribute<string, never>
-     */
-    protected function privateName(): Attribute
-    {
-        return Attribute::make(
-            get: function () {
-                $split = explode(' ', $this->name);
-
-                if (count($split) >= 2) {
-                    return $split[0] . ' ' . mb_substr($split[1], 0, 1);
-                } else {
-                    return $this->name;
-                }
-            }
-        );
-    }
-
-    /**
-     * @return Attribute<string, never>
-     */
-    protected function pilotId(): Attribute
-    {
-        return Attribute::make(
-            get: function () {
-                $number = \sprintf('BDV%04d', $this->id);
-                return $number;
-            }
-        );
-    }
-
-    public function getRank(): ?Rank
-    {
-        return Rank::find($this->rank_id);
-
-    }
-
-    /**
-     * @return Attribute<array<int, string>, never>
-     */
-    protected function userRoles(): Attribute
-    {
-        return Attribute::make(
-            get: function () {
-                $r = [];
-                foreach ($this->roles as $role) {
-                    $r[] = $role->role;
-                }
-
-                return $r;
-            }
-        );
-    }
-
-    public function hasRole(string $role): bool
-    {
-        return $this->is_admin || in_array($role, $this->user_roles);
-    }
-
-    /**
-     * @return Attribute<float, never>
-     */
-    protected function balance(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => DB::table('user_accounts')
-                ->where('user_id', $this->id)
-                ->sum('total'),
-        );
-    }
 
     /**
      * @return BelongsTo<Rank, $this>
@@ -179,4 +113,77 @@ class User extends Authenticatable
     {
         return $this->hasMany(Pirep::class)->orderBy('submitted_at', 'desc');
     }
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function privateName(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $split = explode(' ', $this->name);
+
+                if (count($split) >= 2) {
+                    return $split[0] . ' ' . mb_substr($split[1], 0, 1);
+                } else {
+                    return $this->name;
+                }
+            }
+        );
+    }
+
+    /**
+     * @return Attribute<string, never>
+     */
+    protected function pilotId(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $number = \sprintf('BDV%04d', $this->id);
+                return $number;
+            }
+        );
+    }
+
+    public function getRank(): ?Rank
+    {
+        return Rank::find($this->rank_id);
+
+    }
+
+    /**
+     * @return Attribute<array<int, string>, never>
+     */
+    protected function userRoles(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $r = [];
+                foreach ($this->roles as $role) {
+                    $r[] = $role->role->value;
+                }
+
+                return $r;
+            }
+        );
+    }
+
+    public function hasRole(string|RoleNames $role): bool
+    {
+        $role = $role instanceof RoleNames ? $role->value : $role;
+        return $this->is_admin || in_array($role, $this->user_roles);
+    }
+
+    /**
+     * @return Attribute<float, never>
+     */
+    protected function balance(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => DB::table('user_accounts')
+                ->where('user_id', $this->id)
+                ->sum('total'),
+        );
+    }
+
 }
