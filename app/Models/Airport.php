@@ -92,11 +92,42 @@ class Airport extends Model implements IsLocatable
         $lat = $to->getLat();
         $lon = $to->getLng();
 
-        $query
-            ->selectRaw('airports.*,
-             3440 * ACOS(
+        if (is_null($query->columns)) {
+            $query->select('airports.*');
+        }
+
+        $query->selectRaw('3440 * ACOS(LEAST(1,
                 COS(RADIANS(?)) * COS(RADIANS(lat)) * COS(RADIANS(?) - RADIANS(lon)) +
-                 SIN(RADIANS(?)) * SIN(RADIANS(lat))) as distance', [$lat, $lon, $lat]);
+                 SIN(RADIANS(?)) * SIN(RADIANS(lat)))) as distance', [$lat, $lon, $lat]);
+    }
+
+    /**
+     * @param Builder<Airport>  $query
+     */
+    #[Scope]
+    protected function withBearingFrom(Builder $query, IsLocatable|Coordinate|null $from): void
+    {
+        if (!$from) {
+            return;
+        }
+
+        if ($from instanceof IsLocatable) {
+            $from = $from->getCoordinate();
+        }
+
+        $lat = $from->getLat();
+        $lon = $from->getLng();
+
+        if (is_null($query->columns)) {
+            $query->select('airports.*');
+        }
+
+        $query->selectRaw('MOD(DEGREES(ATAN2(
+                SIN(RADIANS(lon - ?)) * COS(RADIANS(lat)),
+                COS(RADIANS(?)) * SIN(RADIANS(lat)) - SIN(RADIANS(?)) * COS(RADIANS(lat)) * COS(RADIANS(lon - ?))
+            )) + 360, 360) as bearing',
+            [$lon, $lat, $lat, $lon]
+        );
     }
 
     /**
@@ -125,6 +156,52 @@ class Airport extends Model implements IsLocatable
                 $q->whereBetween('lon', [$lon - $lonRange, $lon + $lonRange]);
             })
             ->whereRaw('3440 * ACOS(COS(RADIANS(?)) * COS(RADIANS(lat)) * COS(RADIANS(?) - RADIANS(lon)) + SIN(RADIANS(?)) * SIN(RADIANS(lat))) between ? AND ?', [$lat, $lon, $lat, $min, $max]);
+    }
+
+    /**
+     * Filter airports by bearing from a point, with a tolerance envelope that widens near
+     * the origin and narrows at range (hyperbolic decay). Distance is computed once via
+     * withRangeTo and referenced in HAVING alongside the bearing alias.
+     *
+     * @param Builder<Airport>  $query
+     * @param float $bearing      Target heading 0–360
+     * @param float $maxDegrees   Tolerance at origin (widest)
+     * @param float $minDegrees   Floor tolerance at range (never collapses fully)
+     * @param float $pivotNm      Distance at which tolerance halves
+     * @param float $maxDistance  Bounding box radius in NM — also defines how far the envelope shape applies
+     */
+    #[Scope]
+    protected function inBearingFrom(
+        Builder $query,
+        IsLocatable|Coordinate $from,
+        float $bearing,
+        float $maxDegrees = 45.0,
+        float $minDegrees = 10.0,
+        float $pivotNm = 50.0,
+        float $maxDistance = 400.0,
+    ): void {
+        if ($from instanceof IsLocatable) {
+            $from = $from->getCoordinate();
+        }
+
+        $lat = $from->getLat();
+        $lon = $from->getLng();
+
+        $latRange = $maxDistance / 60;
+
+        // Compute distance and bearing together in one selectRaw — one distance calc total
+        $query
+            ->withRangeTo($from)
+            ->withBearingFrom($from)
+            ->whereBetween('lat', [$lat - $latRange, $lat + $latRange])
+            ->when(abs($lat) < 85, function ($q) use ($lon, $lat, $maxDistance) {
+                $lonRange = abs($maxDistance / (60 * cos(deg2rad($lat))));
+                $q->whereBetween('lon', [$lon - $lonRange, $lon + $lonRange]);
+            })
+            ->havingRaw(
+                'ABS(MOD(bearing - ? + 540, 360) - 180) <= GREATEST(?, ? * ? / (? + distance))',
+                [$bearing, $minDegrees, $maxDegrees, $pivotNm, $pivotNm]
+            );
     }
 
     /**
