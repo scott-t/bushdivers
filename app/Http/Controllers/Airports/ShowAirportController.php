@@ -7,6 +7,7 @@ use App\Models\Aircraft;
 use App\Models\Airport;
 use App\Models\Contract;
 use App\Models\Enums\AircraftStatus;
+use App\Models\Rental;
 use App\Services\Contracts\GenerateContracts;
 use App\Services\Contracts\GetNumberToGenerate;
 use App\Services\Contracts\StoreContracts;
@@ -50,10 +51,18 @@ class ShowAirportController extends Controller
         }
 
         $nearestFuel = Airport::inRangeOf($airport, 2, 500)->fuel()->orderBy('distance')->limit(5)->get();
-        $aircraft = Aircraft::with(['fleet', 'engines', 'hub', 'location'])
+        $aircraft = Aircraft::with(['fleet', 'location'])
             ->whereIn('owner_id', [0, Auth::id()])
             ->where('status', AircraftStatus::ACTIVE)
+            ->get()
+            ->makeHidden(['maintenance_status', 'total_condition']);
+
+        $rental = Rental::with(['fleet', 'location'])
+            ->where('user_id', Auth::id())
+            ->where('is_active', true)
             ->get();
+
+        $aircraft = $aircraft->toBase()->merge($rental);
 
         // get contracts
         $contracts = $this->getContracts($airport);

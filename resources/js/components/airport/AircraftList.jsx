@@ -14,9 +14,16 @@ const AircraftList = ({ airport, aircraft = null, fleet = null }) => {
 
   useEffect(() => {
     if (aircraft === null) return
+
+    // rental don't have last lat/lon, so we need to use location instead
     const processAircraft = aircraft?.map((ac) => ({
       ...ac,
-      distance: getDistance(airport.lat, airport.lon, ac.last_lat, ac.last_lon),
+      distance: getDistance(
+        airport.lat,
+        airport.lon,
+        ac.last_lat ?? ac.location.lat,
+        ac.last_lon ?? ac.location.lon
+      ),
     }))
     setUpdatedAircraft(processAircraft.sort(dynamicSort('distance', 'asc')))
   }, [aircraft])
@@ -41,10 +48,18 @@ const AircraftList = ({ airport, aircraft = null, fleet = null }) => {
         >
           <Box p={2} overflowY="auto">
             {updatedAircraft?.map((ac) => (
-              <AircraftDetail airport={airport} key={ac.id} aircraft={ac} />
+              <AircraftDetail
+                airport={airport}
+                key={ac.registration}
+                aircraft={ac}
+              />
             ))}
             {updatedFleet?.map((ac) => (
-              <AircraftDetail airport={airport} key={ac.id} aircraft={ac} />
+              <AircraftDetail
+                airport={airport}
+                key={ac.registration}
+                aircraft={ac}
+              />
             ))}
           </Box>
         </Card>

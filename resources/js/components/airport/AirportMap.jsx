@@ -50,7 +50,7 @@ function AirportMap({
     [aircraft]
   )
   const privateAc = useMemo(
-    () => aircraft.filter((ac) => ac.owner_id !== 0),
+    () => aircraft.filter((ac) => (ac.owner_id ?? ac.user_id) !== 0),
     [aircraft]
   )
   const myContracts = useMemo(
@@ -274,7 +274,7 @@ function AirportMap({
           fleet.map((ac) => (
             <Marker
               onClick={() => handleAircraftSelection(ac)}
-              key={ac.id}
+              key={ac.registration}
               scale={0.75}
               longitude={ac.last_lon}
               latitude={ac.last_lat}
@@ -287,13 +287,14 @@ function AirportMap({
           ))}
         {contractMapLayers.myAircraft &&
           privateAc &&
+          /* rental have no last lat/lon, use location instead */
           privateAc.map((ac) => (
             <Marker
               onClick={() => handleAircraftSelection(ac)}
-              key={ac.id}
+              key={ac.registration}
               scale={0.75}
-              longitude={ac.last_lon}
-              latitude={ac.last_lat}
+              longitude={ac.last_lon ?? ac.location.lon}
+              latitude={ac.last_lat ?? ac.location.lat}
             >
               <Image
                 boxSize="30px"
@@ -302,9 +303,14 @@ function AirportMap({
             </Marker>
           ))}
         {showPopup && (
+          /* rental have no last lat/lon, use location instead */
           <Popup
-            longitude={selectedAircraft.last_lon}
-            latitude={selectedAircraft.last_lat}
+            longitude={
+              selectedAircraft.last_lon ?? selectedAircraft.location.lon
+            }
+            latitude={
+              selectedAircraft.last_lat ?? selectedAircraft.location.lat
+            }
             anchor="bottom"
             onClose={() => setShowPopup(false)}
             closeOnClick={false}

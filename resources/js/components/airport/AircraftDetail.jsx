@@ -20,11 +20,16 @@ const AircraftDetail = ({ aircraft, airport }) => {
   const [selectedAircraft, updateSelectedAircraft] =
     useAtom(selectedAircraftAtom)
   const { current: map } = useMap()
+  const selectedBgColor = useColorModeValue('orange.300', 'orange.800')
 
   useEffect(() => {
     if (selectedAircraft !== null) {
       map.flyTo({
-        center: [selectedAircraft.last_lon, selectedAircraft.last_lat],
+        // rental don't have last lat/lon, so we need to use location instead
+        center: [
+          selectedAircraft.last_lon ?? selectedAircraft.location.lon,
+          selectedAircraft.last_lat ?? selectedAircraft.location.lat,
+        ],
         zoom: 12,
       })
     } else {
@@ -41,8 +46,9 @@ const AircraftDetail = ({ aircraft, airport }) => {
       p={2}
       cursor="pointer"
       bgColor={
-        selectedAircraft && selectedAircraft.id === aircraft.id
-          ? useColorModeValue('orange.300', 'orange.800')
+        selectedAircraft &&
+        selectedAircraft.registration === aircraft.registration
+          ? selectedBgColor
           : ''
       }
       onClick={() =>
@@ -51,7 +57,13 @@ const AircraftDetail = ({ aircraft, airport }) => {
     >
       <Flex alignItems="center" justifyContent="space-between">
         <Heading size="sm">{aircraft.registration}</Heading>
-        <Tag>{aircraft.owner_id === 0 ? 'Fleet' : 'Private'}</Tag>
+        <Tag>
+          {aircraft.owner_id === 0
+            ? 'Fleet'
+            : aircraft.owner_id > 0
+              ? 'Private'
+              : 'Rental'}
+        </Tag>
       </Flex>
       <Flex mt={2} alignItems="center" justifyContent="space-between">
         <Text size="lg">{aircraft.fleet.type}</Text>
@@ -65,11 +77,12 @@ const AircraftDetail = ({ aircraft, airport }) => {
           <Text size="lg">{aircraft.location.identifier}</Text>
           <Text size="lg">
             {displayNumber(
+              /* rental have no last lat/lon, use location instead */
               getDistance(
                 airport.lat,
                 airport.lon,
-                aircraft.last_lat,
-                aircraft.last_lon
+                aircraft.last_lat ?? aircraft.location.lat,
+                aircraft.last_lon ?? aircraft.location.lon
               )
             )}
             nm
