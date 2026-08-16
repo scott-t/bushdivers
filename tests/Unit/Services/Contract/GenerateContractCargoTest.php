@@ -29,6 +29,7 @@ class GenerateContractCargoTest extends TestCase
         for ($i = 0; $i < 20; $i++) {
             $result = $this->generateContractCargo->execute();
             $this->assertEquals(0, $result['qty'] % 500, "qty {$result['qty']} is not a multiple of 500");
+            $this->assertEquals(500, $result['min_cargo_split']);
         }
     }
 

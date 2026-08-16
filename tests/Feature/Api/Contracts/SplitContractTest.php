@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api\Contracts;
 
 use App\Models\Airport;
-use App\Models\CargoType;
 use App\Models\Contract;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -173,11 +172,10 @@ class SplitContractTest extends TestCase
 
     public function test_split_below_min_cargo_split_fails(): void
     {
-        CargoType::create(['text' => 'Test', 'type' => 1, 'min_cargo_split' => 500]);
-
         $contract = Contract::factory()->create([
             'cargo_qty' => 3800,
             'cargo_type' => 1,
+            'min_cargo_split' => 500,
             'payload' => 3800,
             'contract_value' => 6525,
             'cargo' => 'Test',
@@ -194,11 +192,10 @@ class SplitContractTest extends TestCase
 
     public function test_split_respects_min_cargo_split_on_remainder(): void
     {
-        CargoType::create(['text' => 'Test', 'type' => 1, 'min_cargo_split' => 500]);
-
         $contract = Contract::factory()->create([
             'cargo_qty' => 3800,
             'cargo_type' => 1,
+            'min_cargo_split' => 500,
             'payload' => 3800,
             'contract_value' => 6525,
             'cargo' => 'Test',
@@ -216,11 +213,10 @@ class SplitContractTest extends TestCase
 
     public function test_split_at_min_cargo_split_succeeds(): void
     {
-        CargoType::create(['text' => 'Test', 'type' => 1, 'min_cargo_split' => 500]);
-
         $contract = Contract::factory()->create([
             'cargo_qty' => 3800,
             'cargo_type' => 1,
+            'min_cargo_split' => 500,
             'payload' => 3800,
             'contract_value' => 6525,
             'cargo' => 'Test',

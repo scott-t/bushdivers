@@ -34,7 +34,7 @@ class SplitContractController extends Controller
             return \response()->json(['message' => 'Split too small'], 422);
         }
 
-        $minSplit = \App\Models\CargoType::where('text', $existingContract->cargo)->value('min_cargo_split') ?? 1;
+        $minSplit = $existingContract->min_cargo_split ?? 1;
 
         if ($newQty < $minSplit || $remainingQty < $minSplit) {
             return \response()->json(['message' => "Each split must be at least {$minSplit} units"], 422);
@@ -55,19 +55,23 @@ class SplitContractController extends Controller
         $contract->distance = $existingContract->distance;
         $contract->contract_value = $remainingValue;
         $contract->cargo_type = $existingContract->cargo_type;
+        $contract->min_cargo_split = $existingContract->min_cargo_split;
         $contract->cargo = $existingContract->cargo;
         $contract->cargo_qty = $remainingQty;
         $contract->heading = $existingContract->heading;
         $contract->expires_at = $existingContract->expires_at;
         $contract->is_available = $existingContract->is_available;
         $contract->is_shared = $existingContract->is_shared;
-        if ($existingContract->cargo_type == CargoTypeEnum::Cargo) {
+        if ($existingContract->cargo_type === CargoTypeEnum::Cargo) {
             $existingContract->payload = $newQty;
             $contract->payload = $remainingQty;
-        } else {
+        } elseif ($existingContract->cargo_type === CargoTypeEnum::Passenger) {
             $existingContract->pax = $newQty;
             $contract->pax = $remainingQty;
+        } else {
+            throw new \Exception('Invalid cargo type for contract split');
         }
+
         $contract->user_id = $existingContract->user_id;
         $contract->is_custom = false;
         $contract->fuel_qty = $existingContract->fuel_qty;

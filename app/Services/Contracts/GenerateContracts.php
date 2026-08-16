@@ -14,7 +14,7 @@ class GenerateContracts
         $this->generateContractDetails = $generateContractDetails;
     }
 
-    public function execute(Airport $airport, $numberToGenerate, $toHub = false)
+    public function execute(Airport $airport, $numberToGenerate, $toHub = false): null|array
     {
         $user = Auth::user();
         // get airports
@@ -50,7 +50,9 @@ class GenerateContracts
             while ($near <= $nearbyNumber) {
                 $destAirport = $nearbyAirports->random(1);
                 if ($airport->identifier != $destAirport[0]->identifier) {
-                    if ($destAirport[0]->is_hub) $numberToHubs = $numberToHubs + 1;
+                    if ($destAirport[0]->is_hub) {
+                        $numberToHubs = $numberToHubs + 1;
+                    }
                     $contract = $this->generateContractDetails->execute($airport, $destAirport[0]);
                     $contracts[] = $contract;
                 }
@@ -61,7 +63,9 @@ class GenerateContracts
             while ($mid <= $midNumber) {
                 $destAirport = $midRangeAirports->random(1);
                 if ($airport->identifier != $destAirport[0]->identifier) {
-                    if ($destAirport[0]->is_hub) $numberToHubs = $numberToHubs + 1;
+                    if ($destAirport[0]->is_hub) {
+                        $numberToHubs = $numberToHubs + 1;
+                    }
                     $contract = $this->generateContractDetails->execute($airport, $destAirport[0]);
                     $contracts[] = $contract;
                 }
@@ -72,7 +76,9 @@ class GenerateContracts
             while ($far <= $furtherNumber) {
                 $destAirport = $furtherAfieldAirports->random(1);
                 if ($airport->identifier != $destAirport[0]->identifier) {
-                    if ($destAirport[0]->is_hub) $numberToHubs = $numberToHubs + 1;
+                    if ($destAirport[0]->is_hub) {
+                        $numberToHubs = $numberToHubs + 1;
+                    }
                     $contract = $this->generateContractDetails->execute($airport, $destAirport[0]);
                     $contracts[] = $contract;
                 }
@@ -83,7 +89,9 @@ class GenerateContracts
             while ($i <= $numberToGenerate) {
                 $destAirport = $allAirports->random(1);
                 if ($airport->identifier != $destAirport[0]->identifier) {
-                    if ($destAirport[0]->is_hub) $numberToHubs = $numberToHubs + 1;
+                    if ($destAirport[0]->is_hub) {
+                        $numberToHubs = $numberToHubs + 1;
+                    }
                     $contract = $this->generateContractDetails->execute($airport, $destAirport[0]);
                     $contracts[] = $contract;
                 }

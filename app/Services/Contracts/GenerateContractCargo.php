@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\DB;
 
 class GenerateContractCargo
 {
+    /**
+     * Cargo generator
+     * @return array{name: string, qty: int, type: CargoType, min_cargo_split: int}
+     */
     public function execute(): array
     {
         $minCargo = 200;
@@ -30,7 +34,8 @@ class GenerateContractCargo
         return [
             'name' => $cargo->text,
             'type' => CargoType::from($cargo->type),
-            'qty' => $qty
+            'qty' => $qty,
+            'min_cargo_split' => $step,
         ];
     }
 

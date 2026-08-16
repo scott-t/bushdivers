@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Models\Enums\CargoType as CargoTypeEnum;
-use App\Models\Enums\ContractType as ContractTypEnum;
+use App\Models\Enums\ContractType as ContractTypeEnum;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Override;
 
+/**
+ * @property CargoTypeEnum $cargo_type
+ */
 class Contract extends Model
 {
     /**
@@ -26,7 +29,7 @@ class Contract extends Model
         return [
             'expires_at' => 'datetime',
             'completed_at' => 'datetime',
-            'contract_type_id' => ContractTypEnum::class,
+            'contract_type_id' => ContractTypeEnum::class,
             'cargo_type' => CargoTypeEnum::class,
             'is_available' => 'boolean', // Available/unassigned
             'is_completed' => 'boolean', // Finished, all done

@@ -14,7 +14,7 @@ class GenerateRecurringCommunityJobs
         $this->createCommunityContract = $createCommunityContract;
     }
 
-    public function execute()
+    public function execute(): void
     {
         $communityJob = CommunityJob::where('is_published', true)->where('is_completed', false)->firstOrFail();
         $jobs = CommunityJobContract::where('community_job_id', $communityJob->id)

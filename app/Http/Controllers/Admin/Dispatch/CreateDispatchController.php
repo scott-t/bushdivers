@@ -13,13 +13,8 @@ use Illuminate\Http\RedirectResponse;
 
 class CreateDispatchController extends Controller
 {
-    protected $generateContractDetails;
-    protected $storeContracts;
-
-    public function __construct(GenerateContractDetails $generateContractDetails, StoreContracts $storeContracts)
+    public function __construct(protected GenerateContractDetails $generateContractDetails, protected StoreContracts $storeContracts)
     {
-        $this->generateContractDetails = $generateContractDetails;
-        $this->storeContracts = $storeContracts;
     }
 
 
@@ -36,7 +31,7 @@ class CreateDispatchController extends Controller
         $cargo = CargoType::where('type', CargoTypeEnum::Cargo)->inRandomOrder()->firstOrFail();
 
         // Generate contract details
-        $contractDetails = $this->generateContractDetails->execute($origin, $destination, ['name' => $cargo->text, 'type' => $cargo->type, 'qty' => $cargoQty]);
+        $contractDetails = $this->generateContractDetails->execute($origin, $destination, ['name' => $cargo->text, 'type' => $cargo->type, 'qty' => $cargoQty, 'min_cargo_split' => $cargo->min_cargo_split]);
         if (empty($contractDetails)) {
             return redirect()->back()->with(['error' => 'Failed to generate contract details']);
         }

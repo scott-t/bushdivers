@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Dispatch;
 use App\Http\Controllers\Controller;
 use App\Models\Aircraft;
 use App\Models\Airport;
-use App\Models\CargoType;
 use App\Models\Contract;
 use App\Models\Enums\AircraftState;
 use App\Models\Enums\AircraftStatus;
@@ -106,8 +105,6 @@ class ShowDispatchController extends Controller
      */
     protected function getCargoForDispatch(Airport $currentLocation, int $userId): array
     {
-        $minSplits = CargoType::pluck('min_cargo_split', 'text');
-
         $cargoAtAirport = Contract::with('arrAirport', 'communityJobContract.communityJob')
             ->where('current_airport_id', $currentLocation->id)
             ->where('is_completed', false)
@@ -117,12 +114,7 @@ class ShowDispatchController extends Controller
             })
             ->orderBy('heading', 'asc')
             ->orderBy('arr_airport_id', 'asc')
-            ->get()
-            ->map(function (Contract $contract) use ($minSplits) {
-                $contract = $contract->toArray();
-                $contract['min_cargo_split'] = $minSplits->get($contract['cargo'], 1);
-                return $contract;
-            });
+            ->get();
 
         $cargoElsewhere = Contract::with('currentAirport', 'arrAirport')
             ->where('current_airport_id', '<>', $currentLocation->id)
