@@ -234,8 +234,8 @@ const Airports = ({ airports, bulkUploadResults }) => {
                 has_avgas/has_jetfuel: true/false
               </Text>
               <Text fontSize="xs">
-                runway_surface: ASPHALT, CONCRETE, GRASS, GRAVEL, BITUMINOUS,
-                CEMENT, MACADAM, SAND, TARMAC, WATER
+                runway_surface: ASPHALT, CONCRETE, DIRT, GRASS, GRAVEL,
+                BITUMINOUS, CEMENT, MACADAM, SAND, TARMAC, WATER
               </Text>
               <Text fontSize="xs">
                 Example:

@@ -9,6 +9,7 @@ enum AirportRunwaySurface: string
     case CONCRETE = 'C';
     case CEMENT = 'CE';
     case WATER_ALT = 'CR';
+    case DIRT = 'D';
     case GRASS = 'G';
     case GRAVEL = 'GR';
     case MACADAM = 'M';
@@ -24,6 +25,7 @@ enum AirportRunwaySurface: string
             self::CONCRETE => 'Concrete',
             self::CEMENT => 'Cement',
             self::WATER, self::WATER_ALT => 'Water',
+            self::DIRT => 'Dirt',
             self::GRASS => 'Grass',
             self::GRAVEL => 'Gravel',
             self::MACADAM => 'Macadam',

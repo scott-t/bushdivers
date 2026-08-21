@@ -122,8 +122,8 @@ class BulkUploadAirportsController extends Controller
                     ],
                     'lon' => 'required|numeric|between:-180,180',
                     'magnetic_variance' => 'required|numeric|between:-180,180',
-                    'altitude' => 'required|integer|min:-1000|max:30000',
-                    'size' => 'required|integer|min:1|max:5',
+                    'altitude' => 'required|numeric|min:-1000|max:30000',
+                    'size' => 'required|integer|min:0|max:5',
                     'longest_runway_length' => 'required|integer|min:0|max:20000',
                     'longest_runway_width' => 'required|integer|min:0|max:500',
                     'longest_runway_surface' => [
@@ -184,6 +184,8 @@ class BulkUploadAirportsController extends Controller
     {
         // Convert runway surface name/label to enum value
         $runwaySurfaceValue = $this->convertRunwaySurfaceToValue($data['longest_runway_surface']);
+
+        $data['altitude'] = (int) $data['altitude'];
 
         // Apply defaults and transformations like in AdminCreateAirportRequest
         $airportData = array_merge($data, [

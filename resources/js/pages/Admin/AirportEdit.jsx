@@ -78,6 +78,7 @@ const AirportEdit = ({ airport, isEdit, countries }) => {
     B: 'Bituminous',
     C: 'Concrete',
     CE: 'Cement',
+    D: 'Dirt',
     G: 'Grass',
     GR: 'Gravel',
     M: 'Macadam',
