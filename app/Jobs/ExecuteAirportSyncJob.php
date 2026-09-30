@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Enums\SimType;
+use App\Services\AirportSync\AirportSyncConflictException;
 use App\Services\AirportSync\AirportSyncExecutor;
 use App\Services\AirportSync\AirportSyncSessionManager;
 use Illuminate\Bus\Queueable;
@@ -19,9 +19,12 @@ class ExecuteAirportSyncJob implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    /** Never retry: a partial failure rolls back, and the admin should look at why */
+    public int $tries = 1;
+
     public function __construct(
         private readonly string $sessionId,
-        private readonly bool $includeDeactivations
+        private readonly bool $includeUntags
     ) {
     }
 
@@ -31,26 +34,35 @@ class ExecuteAirportSyncJob implements ShouldQueue
     ): void {
         $session = $sessionManager->get($this->sessionId);
 
-        if (! $session || empty($session['results'])) {
+        // The controller moves the session to "executing" before dispatching; anything else is a duplicate
+        if (! $session || $session['status'] !== AirportSyncSessionManager::EXECUTING || empty($session['changeset'])) {
             return;
         }
 
         try {
-            $summary = $executor->execute(
-                $session['results'],
-                SimType::from($session['sim_type']),
-                $this->includeDeactivations
-            );
+            $summary = $executor->execute($session['changeset'], $this->includeUntags);
 
             $sessionManager->setExecutionSummary($this->sessionId, $summary);
-            $sessionManager->setStatus($this->sessionId, 'executed');
+            $sessionManager->setStatus($this->sessionId, AirportSyncSessionManager::EXECUTED);
 
             if (! empty($session['file_path'])) {
                 Storage::delete($session['file_path']);
             }
+        } catch (AirportSyncConflictException $e) {
+            // Nothing was written. Hand it back to the admin with the fresh conflicts.
+            $sessionManager->mutate($this->sessionId, function (array $session) use ($e) {
+                $session['status'] = AirportSyncSessionManager::READY;
+                $session['error'] = $e->getMessage();
+
+                if ($e->conflicts) {
+                    $session['changeset']['conflicts'] = $e->conflicts;
+                }
+
+                return $session;
+            });
         } catch (\Throwable $e) {
-            $sessionManager->setError($this->sessionId, $e->getMessage());
-            $sessionManager->setStatus($this->sessionId, 'failed');
+            report($e);
+            $sessionManager->fail($this->sessionId, $e->getMessage());
         }
     }
 }

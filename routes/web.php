@@ -117,6 +117,8 @@ Route::middleware('auth')->group(function () {
             ->name('admin.airports.sync.status');
         Route::post('/admin/airports/sync/{sessionId}/resolve', [\App\Http\Controllers\Admin\Airports\AirportSyncController::class, 'resolve'])
             ->name('admin.airports.sync.resolve');
+        Route::post('/admin/airports/sync/{sessionId}/override', [\App\Http\Controllers\Admin\Airports\AirportSyncController::class, 'override'])
+            ->name('admin.airports.sync.override');
         Route::post('/admin/airports/sync/{sessionId}/execute', [\App\Http\Controllers\Admin\Airports\AirportSyncController::class, 'execute'])
             ->name('admin.airports.sync.execute');
     });

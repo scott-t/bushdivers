@@ -5,8 +5,19 @@ namespace App\Services\AirportSync;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
+/**
+ * Cache-backed state for an admin sync session.
+ * Status flow: queued -> processing -> ready -> executing -> executed (or failed at any step).
+ */
 class AirportSyncSessionManager
 {
+    public const QUEUED = 'queued';
+    public const PROCESSING = 'processing';
+    public const READY = 'ready';
+    public const EXECUTING = 'executing';
+    public const EXECUTED = 'executed';
+    public const FAILED = 'failed';
+
     private const TTL_HOURS = 2;
 
     public function create(string $simType, string $filePath): string
@@ -14,21 +25,16 @@ class AirportSyncSessionManager
         $basename = pathinfo($filePath, PATHINFO_FILENAME);
         $sessionId = Str::isUuid($basename) ? $basename : (string) Str::uuid();
 
-        $payload = [
+        Cache::put($this->cacheKey($sessionId), [
             'session_id' => $sessionId,
-            'status' => 'queued',
+            'status' => self::QUEUED,
             'sim_type' => $simType,
             'file_path' => $filePath,
-            'progress' => [
-                'current' => 0,
-                'total' => 0,
-            ],
-            'results' => null,
+            'progress' => ['current' => 0, 'total' => 0],
+            'changeset' => null,
             'execution_summary' => null,
             'error' => null,
-        ];
-
-        Cache::put($this->cacheKey($sessionId), $payload, now()->addHours(self::TTL_HOURS));
+        ], now()->addHours(self::TTL_HOURS));
 
         return $sessionId;
     }
@@ -40,101 +46,87 @@ class AirportSyncSessionManager
 
     public function setStatus(string $sessionId, string $status): void
     {
-        $this->update($sessionId, function (array $session) use ($status) {
-            $session['status'] = $status;
-
-            return $session;
-        });
+        $this->mutate($sessionId, fn (array $session) => ['status' => $status] + $session);
     }
 
     public function setProgress(string $sessionId, int $current, int $total): void
     {
-        $this->update($sessionId, function (array $session) use ($current, $total) {
-            $session['progress'] = [
-                'current' => $current,
-                'total' => $total,
-            ];
-
-            return $session;
-        });
+        $this->mutate($sessionId, fn (array $session) => ['progress' => compact('current', 'total')] + $session);
     }
 
-    public function setResults(string $sessionId, array $results): void
+    public function setChangeset(string $sessionId, array $changeset): void
     {
-        $this->update($sessionId, function (array $session) use ($results) {
-            $session['results'] = $results;
-
-            return $session;
-        });
+        $this->mutate($sessionId, fn (array $session) => ['changeset' => $changeset] + $session);
     }
 
-    public function setError(string $sessionId, string $error): void
+    public function fail(string $sessionId, string $error, ?array $conflicts = null): void
     {
-        $this->update($sessionId, function (array $session) use ($error) {
+        $this->mutate($sessionId, function (array $session) use ($error, $conflicts) {
+            $session['status'] = self::FAILED;
             $session['error'] = $error;
 
+            if ($conflicts !== null && $session['changeset']) {
+                $session['changeset']['conflicts'] = $conflicts;
+            }
+
             return $session;
         });
     }
 
-    public function updateReviewDecision(string $sessionId, string $itemId, string $decision): void
+    public function setExecutionSummary(string $sessionId, array $summary): void
     {
-        $this->update($sessionId, function (array $session) use ($itemId, $decision) {
-            if (! isset($session['results']['review_items'])) {
+        $this->mutate($sessionId, fn (array $session) => ['execution_summary' => $summary] + $session);
+    }
+
+    /**
+     * Atomically move from one of $from to $to. Returns false if the session was in any other state.
+     */
+    public function transition(string $sessionId, array $from, string $to): bool
+    {
+        $moved = false;
+
+        $this->mutate($sessionId, function (array $session) use ($from, $to, &$moved) {
+            if (! in_array($session['status'], $from, true)) {
                 return $session;
             }
 
-            $session['results']['review_items'] = collect($session['results']['review_items'])
-                ->map(function (array $item) use ($itemId, $decision) {
-                    if (($item['id'] ?? null) === $itemId) {
-                        $item['admin_decision'] = $decision;
-                    }
-
-                    return $item;
-                })
-                ->values()
-                ->all();
+            $moved = true;
+            $session['status'] = $to;
 
             return $session;
+        });
+
+        return $moved;
+    }
+
+    /**
+     * Locked read-modify-write, so concurrent review decisions can't overwrite each other.
+     */
+    public function mutate(string $sessionId, callable $mutator): ?array
+    {
+        return Cache::lock($this->cacheKey($sessionId) . ':lock', 10)->block(5, function () use ($sessionId, $mutator) {
+            $session = $this->get($sessionId);
+
+            if (! $session) {
+                return null;
+            }
+
+            $updated = $mutator($session);
+
+            Cache::put($this->cacheKey($sessionId), $updated, now()->addHours(self::TTL_HOURS));
+
+            return $updated;
         });
     }
 
     public function extendTtl(string $sessionId): void
     {
-        $session = $this->get($sessionId);
-
-        if (! $session) {
-            return;
-        }
-
-        Cache::put($this->cacheKey($sessionId), $session, now()->addHours(self::TTL_HOURS));
+        $this->mutate($sessionId, fn (array $session) => $session);
     }
 
     public function destroy(string $sessionId): void
     {
         Cache::forget($this->cacheKey($sessionId));
-    }
-
-    public function setExecutionSummary(string $sessionId, array $summary): void
-    {
-        $this->update($sessionId, function (array $session) use ($summary) {
-            $session['execution_summary'] = $summary;
-
-            return $session;
-        });
-    }
-
-    private function update(string $sessionId, callable $mutator): void
-    {
-        $session = $this->get($sessionId);
-
-        if (! $session) {
-            return;
-        }
-
-        $updated = $mutator($session);
-
-        Cache::put($this->cacheKey($sessionId), $updated, now()->addHours(self::TTL_HOURS));
     }
 
     private function cacheKey(string $sessionId): string

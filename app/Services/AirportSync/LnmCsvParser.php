@@ -58,7 +58,7 @@ class LnmCsvParser
             'name' => $this->nullableTrim($row['name'] ?? null),
             'location' => $this->nullableTrim($row['city'] ?? null),
             'country' => $country !== '' ? $country : null,
-            'country_code' => $this->normaliseCountryCode($row['country_code'] ?? null, $country),
+            'country_code' => $this->normaliseCountryCode($row['country_code'] ?? null),
             'lat' => $this->toFloat($row['laty'] ?? null),
             'lon' => $this->toFloat($row['lonx'] ?? null),
             'altitude' => $this->toInt($row['altitude'] ?? null),
@@ -105,24 +105,15 @@ class LnmCsvParser
         return in_array(strtolower(trim((string) $value)), ['1', 'true', 'yes', 'y'], true);
     }
 
-    private function normaliseCountryCode(mixed $countryCode, string $country): ?string
+    /**
+     * Only trust an explicit code. Deriving one from the country name is wrong more often than
+     * not (Papua New Guinea -> PA, Panama), and null leaves the existing value alone.
+     */
+    private function normaliseCountryCode(mixed $countryCode): ?string
     {
         $rawCode = strtoupper(trim((string) $countryCode));
 
-        if ($rawCode !== '') {
-            return substr($rawCode, 0, 2);
-        }
-
-        // Best-effort fallback when LNM export does not include country_code:
-        // strip non-letters from country name and take the first 2 letters.
-        // This keeps the import resilient but does not guarantee ISO accuracy.
-        $letters = preg_replace('/[^A-Za-z]/', '', strtoupper($country));
-
-        if (! $letters) {
-            return null;
-        }
-
-        return substr($letters, 0, 2);
+        return preg_match('/^[A-Z]{2}$/', $rawCode) ? $rawCode : null;
     }
 
     private function normaliseRunwaySurface(mixed $surface): ?string

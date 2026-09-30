@@ -21,7 +21,7 @@ class LnmCsvParserTest extends TestCase
 
         $this->assertCount(1, $records);
         $this->assertSame('AYMR', $records->first()['identifier']);
-        $this->assertSame('PA', $records->first()['country_code']);
+        $this->assertNull($records->first()['country_code']);
         $this->assertSame('A', $records->first()['longest_runway_surface']);
     }
 

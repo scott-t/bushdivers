@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Storage;
 
 class ProcessAirportSyncJob implements ShouldQueue
 {
@@ -28,29 +29,27 @@ class ProcessAirportSyncJob implements ShouldQueue
         LnmCsvParser $parser,
         AirportSyncService $airportSyncService
     ): void {
-        $session = $sessionManager->get($this->sessionId);
-
-        if (! $session) {
+        if (! $sessionManager->transition($this->sessionId, [AirportSyncSessionManager::QUEUED], AirportSyncSessionManager::PROCESSING)) {
             return;
         }
 
+        $session = $sessionManager->get($this->sessionId);
+
         try {
-            $sessionManager->setStatus($this->sessionId, 'processing');
+            // file_path is relative to the storage disk it was uploaded to
+            $path = Storage::path($session['file_path']);
 
-            $records = $parser->parse($session['file_path']);
-            $simType = SimType::from($session['sim_type']);
-
-            $results = $airportSyncService->analyse(
-                $records,
-                $simType,
+            $changeset = $airportSyncService->analyse(
+                $parser->parse($path),
+                SimType::from($session['sim_type']),
                 fn (int $current, int $total) => $sessionManager->setProgress($this->sessionId, $current, $total)
             );
 
-            $sessionManager->setResults($this->sessionId, $results);
-            $sessionManager->setStatus($this->sessionId, 'complete');
+            $sessionManager->setChangeset($this->sessionId, $changeset);
+            $sessionManager->setStatus($this->sessionId, AirportSyncSessionManager::READY);
         } catch (\Throwable $e) {
-            $sessionManager->setError($this->sessionId, $e->getMessage());
-            $sessionManager->setStatus($this->sessionId, 'failed');
+            report($e);
+            $sessionManager->fail($this->sessionId, $e->getMessage());
         }
     }
 }
