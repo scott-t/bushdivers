@@ -52,6 +52,19 @@ class SyncSimAirports extends Command
             return self::FAILURE;
         }
 
+        $distances = Validator::make($this->options(), [
+            // Distances are rounded to 0.1nm; much beyond a few nm risks pairing up genuinely different airports
+            'match-distance' => ['required', 'numeric', 'between:0.1,5'],
+            // Must cover the match distance, or a row that lost a match could be added right beside that airport
+            'min-separation' => ['required', 'numeric', 'between:0.1,10', 'gte:match-distance'],
+        ]);
+        if ($distances->fails()) {
+            foreach ($distances->errors()->all() as $error) {
+                $this->error($error);
+            }
+            return self::FAILURE;
+        }
+
         $file = $this->argument('file');
         if (!is_readable($file)) {
             $this->error("Cannot read {$file}");
@@ -82,8 +95,8 @@ class SyncSimAirports extends Command
             ->all();
 
         $planner = new AirportSyncPlanner(
-            (float) $this->option('match-distance'),
-            (float) $this->option('min-separation'),
+            (float) $distances->validated()['match-distance'],
+            (float) $distances->validated()['min-separation'],
         );
         $plan = $planner->plan($sim, $rows, $existing, $activeAirportIds);
 

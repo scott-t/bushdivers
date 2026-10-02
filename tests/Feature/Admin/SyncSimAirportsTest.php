@@ -7,6 +7,7 @@ use App\Models\Airport;
 use App\Models\Enums\SimType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class SyncSimAirportsTest extends TestCase
@@ -214,5 +215,47 @@ class SyncSimAirportsTest extends TestCase
     public function test_requires_valid_sim(): void
     {
         $this->sync($this->csv([]), ['--sim' => 'fs98'])->assertFailed();
+    }
+
+    /**
+     * @return array<string, array{0: array<string, string>}>
+     */
+    public static function invalidDistanceOptions(): array
+    {
+        return [
+            'non-numeric match' => [['--match-distance' => 'abc']],
+            'zero match' => [['--match-distance' => '0']],
+            'negative match' => [['--match-distance' => '-1']],
+            'match too far' => [['--match-distance' => '6']],
+            'unit suffix' => [['--match-distance' => '1nm']],
+            'non-numeric separation' => [['--min-separation' => 'abc']],
+            'zero separation' => [['--min-separation' => '0']],
+            'separation too far' => [['--min-separation' => '11']],
+            'separation under match' => [['--match-distance' => '2', '--min-separation' => '1.5']],
+        ];
+    }
+
+    /**
+     * @param array<string, string> $options
+     */
+    #[DataProvider('invalidDistanceOptions')]
+    public function test_rejects_invalid_distances(array $options): void
+    {
+        $airport = $this->airport('AAAA', -6, 143);
+
+        $this->sync($this->csv(['BBBB' => [-6, 143]]), $options)->assertFailed();
+
+        $this->assertEquals('AAAA', $airport->fresh()->identifier);
+    }
+
+    public function test_uses_custom_distances(): void
+    {
+        $airport = $this->airport('AAAA', -6, 143);
+
+        // 1.5nm away: beyond the default match distance, within the custom one
+        $this->sync($this->csv(['BBBB' => [-6.025, 143]]), ['--match-distance' => '1.6', '--min-separation' => '3'])
+            ->assertSuccessful();
+
+        $this->assertEquals('BBBB', $airport->fresh()->identifier);
     }
 }
