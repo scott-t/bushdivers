@@ -72,9 +72,10 @@ class AirportCsvRow
      * Convert a validated CSV row into airport model attributes
      *
      * @param array<string, mixed> $data
+     * @param array<string, string|null>|null $flags Preloaded flags by country code (see flagsByCountry()), otherwise looked up per row
      * @return array<string, mixed>
      */
-    public static function toAttributes(array $data): array
+    public static function toAttributes(array $data, ?array $flags = null): array
     {
         $attributes = array_merge($data, [
             'identifier' => strtoupper($data['identifier']),
@@ -87,11 +88,25 @@ class AirportCsvRow
 
         // Set flag from existing airport with same country code
         if (! empty($data['country_code'])) {
-            $attributes['flag'] = Airport::where('country_code', $data['country_code'])
-                ->first()?->flag;
+            $attributes['flag'] = $flags !== null
+                ? $flags[$data['country_code']] ?? null
+                : Airport::where('country_code', $data['country_code'])->first()?->flag;
         }
 
         return $attributes;
+    }
+
+    /**
+     * Flag of the first airport in each country, for converting many rows without a lookup per row
+     *
+     * @return array<string, string|null>
+     */
+    public static function flagsByCountry(): array
+    {
+        return Airport::query()
+            ->whereIn('id', Airport::query()->selectRaw('MIN(id)')->whereNotNull('country_code')->groupBy('country_code'))
+            ->pluck('flag', 'country_code')
+            ->all();
     }
 
     private static function convertRunwaySurfaceToValue(string $surface): string

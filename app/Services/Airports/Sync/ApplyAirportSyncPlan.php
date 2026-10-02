@@ -10,7 +10,9 @@ class ApplyAirportSyncPlan
 {
     public function execute(AirportSyncPlan $plan): void
     {
-        DB::transaction(function () use ($plan) {
+        $flags = $plan->additions ? AirportCsvRow::flagsByCountry() : [];
+
+        DB::transaction(function () use ($plan, $flags) {
             $renamed = array_filter($plan->changes, fn (AirportChange $change) => $change->identifierChanged());
 
             // Move every changing identifier out of the way first, so renames can be applied in any order
@@ -37,14 +39,19 @@ class ApplyAirportSyncPlan
                 }
             }
 
-            foreach ($plan->additions as $row) {
-                (new Airport())->forceFill(array_merge(AirportCsvRow::toAttributes($row->data), [
-                    'identifier' => $row->identifier,
-                    'is_thirdparty' => false,
-                    'is_hub' => false,
-                    'closed' => false,
-                    'sim_type' => [$plan->sim],
-                ]))->save();
+            $now = now();
+            $additions = array_map(fn (SyncRow $row) => array_merge(AirportCsvRow::toAttributes($row->data, $flags), [
+                'identifier' => $row->identifier,
+                'is_thirdparty' => false,
+                'is_hub' => false,
+                'closed' => false,
+                'sim_type' => json_encode([$plan->sim->value]),
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]), $plan->additions);
+
+            foreach (array_chunk($additions, 500) as $chunk) {
+                Airport::insert($chunk);
             }
         });
     }

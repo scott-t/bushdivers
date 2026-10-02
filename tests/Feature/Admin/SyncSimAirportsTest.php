@@ -6,6 +6,7 @@ use App\Models\Aircraft;
 use App\Models\Airport;
 use App\Models\Enums\SimType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class SyncSimAirportsTest extends TestCase
@@ -132,6 +133,18 @@ class SyncSimAirportsTest extends TestCase
         $this->assertEquals([SimType::MSFS2024], $new->sim_type->all());
         $this->assertEquals('G', $new->longest_runway_surface);
         $this->assertTrue($new->has_avgas);
+    }
+
+    public function test_added_airports_take_country_flag_without_a_lookup_each(): void
+    {
+        Airport::factory()->create(['identifier' => 'AYMR', 'lat' => -6, 'lon' => 143, 'country_code' => 'PG', 'flag' => 'pg.svg']);
+
+        DB::enableQueryLog();
+        $this->sync($this->csv(['NEW1' => [-7, 143], 'NEW2' => [-8, 143], 'NEW3' => [-9, 143]]))->assertSuccessful();
+
+        $flagQueries = collect(DB::getQueryLog())->filter(fn ($query) => str_starts_with($query['query'], 'select') && str_contains($query['query'], 'country_code'));
+        $this->assertCount(1, $flagQueries);
+        $this->assertEquals(['pg.svg'], Airport::where('identifier', 'like', 'NEW%')->pluck('flag')->unique()->values()->all());
     }
 
     public function test_promotes_third_party_airport(): void
