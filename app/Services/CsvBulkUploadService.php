@@ -23,7 +23,7 @@ class CsvBulkUploadService
     /**
      * Process a CSV file and execute a callback for each row
      *
-     * @param UploadedFile $file The uploaded CSV file
+     * @param UploadedFile|string $file The uploaded CSV file, or a path to one
      * @param CsvRowProcessor $rowProcessor Callback that processes each row
      * @param CallbackContext $context Additional context to pass to the row processor
      * @param array<string> $requiredColumns Array of required column names
@@ -31,12 +31,14 @@ class CsvBulkUploadService
      * @throws \Exception
      */
     public function processFile(
-        UploadedFile $file,
+        UploadedFile|string $file,
         callable $rowProcessor,
         array $context = [],
         array $requiredColumns = []
     ): array {
-        $csv = Reader::from($file->getRealPath(), 'r');
+        $path = $file instanceof UploadedFile ? $file->getRealPath() : $file;
+
+        $csv = Reader::from($path, 'r');
         $csv->setHeaderOffset(0);
 
         $records = $csv->getRecords();
