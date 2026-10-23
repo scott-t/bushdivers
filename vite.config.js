@@ -1,3 +1,4 @@
+import vue from '@vitejs/plugin-vue'
 import laravel from 'laravel-vite-plugin'
 import { defineConfig } from 'vite'
 
@@ -7,6 +8,8 @@ export default defineConfig({
       input: ['resources/css/app.css', 'resources/js/app.jsx'],
       refresh: true,
     }),
+    // Phase 0 migration scaffold: only compiles .vue files; React remains the production entry.
+    vue(),
   ],
 
   build: {
