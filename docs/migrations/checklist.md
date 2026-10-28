@@ -13,7 +13,9 @@
 - [ ] Flash messages, shared props and errors still displayed
 
 ## Chakra replacement
-- [ ] Choose UI strategy (see plan)
+- [x] UI strategy: Nuxt UI (standalone, no Nuxt), themed to BD colours
+- [ ] Install Nuxt UI + Tailwind v4 and register the Vite plugin
+- [ ] Define BD colour tokens (primary/neutral) from `resources/js/theme.js` palette; confirm exact brand hex values
 - [ ] Map Chakra components/tokens to replacements (Box, Flex, Button, Modal, Toast, Form controls)
 - [ ] Replace emotion/framer-motion usage; `lucide-react` → `lucide-vue-next`
 
