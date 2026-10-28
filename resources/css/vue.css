@@ -1,0 +1,31 @@
+/* Vue migration entry styles (Nuxt UI + Tailwind v4). Not used by the React app. */
+@import 'tailwindcss';
+@import '@nuxt/ui';
+
+@source '../js';
+
+/*
+ * Bush Divers palette. PLACEHOLDER values seeded from the Chakra orange scale;
+ * replace with real brand shades. Light/dark may use different shades (see below).
+ */
+@theme static {
+  --color-bd-50: #fffaf0;
+  --color-bd-100: #feebc8;
+  --color-bd-200: #fbd38d;
+  --color-bd-300: #f6ad55;
+  --color-bd-400: #ed8936;
+  --color-bd-500: #dd6b20;
+  --color-bd-600: #c05621;
+  --color-bd-700: #9c4221;
+  --color-bd-800: #7b341e;
+  --color-bd-900: #652b19;
+  --color-bd-950: #431c0f;
+}
+
+/* Per-mode shade selection for the primary colour */
+:root {
+  --ui-primary: var(--color-bd-500);
+}
+.dark {
+  --ui-primary: var(--color-bd-400);
+}

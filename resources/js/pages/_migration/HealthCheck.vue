@@ -1,7 +1,17 @@
 <script setup>
-// Migration placeholder (Phase 0). Not routed by any Laravel controller.
+import AppShell from '../../layouts/AppShell.vue'
+import { useAppStore } from '../../stores/app'
+
+// Migration placeholder. Not routed by any Laravel controller.
+defineOptions({ layout: AppShell })
+const app = useAppStore()
 </script>
 
 <template>
-  <div>Vue migration health check: OK</div>
+  <div class="space-y-4">
+    <p>Vue migration health check: OK</p>
+    <UButton @click="app.toggleSidebar()">
+      Sidebar: {{ app.sidebarOpen }}
+    </UButton>
+  </div>
 </template>

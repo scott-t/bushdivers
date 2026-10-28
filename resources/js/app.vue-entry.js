@@ -1,7 +1,9 @@
-// MIGRATION SCAFFOLD (Phase 0): not wired as a production entry.
+// MIGRATION SCAFFOLD: not a production entry.
 // The production entry remains resources/js/app.jsx (React + Inertia React).
-// To experiment, temporarily add this file to the `input` list in vite.config.js.
+// Run with `npm run dev:vue` / `npm run build:vue` (sets VUE_ENTRY=1 in vite.config.js).
 import { createInertiaApp } from '@inertiajs/vue3'
+import ui from '@nuxt/ui/vue-plugin'
+import { createPinia } from 'pinia'
 import { createApp, h } from 'vue'
 
 createInertiaApp({
@@ -15,6 +17,8 @@ createInertiaApp({
   setup({ el, App, props, plugin }) {
     createApp({ render: () => h(App, props) })
       .use(plugin)
+      .use(createPinia())
+      .use(ui)
       .mount(el)
   },
 })

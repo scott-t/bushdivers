@@ -44,3 +44,10 @@ Laravel backend and Inertia protocol stay unchanged; only the frontend adapter, 
 - Until the final phase, React entry stays intact, so switching back is a Vite input / Blade `@vite` change.
 - Backend is untouched, so no data or API rollback is required.
 - Final decommission happens only after a stable period on Vue; keep a tag of the last React release.
+
+## Phase 1 status (foundation, non-breaking)
+- Nuxt UI (standalone) + Tailwind v4 + Pinia added; `eslint-plugin-vue` lints `.vue` files (`npm run lint`).
+- Vue experiment is opt-in: `npm run dev:vue` / `npm run build:vue` (`VUE_ENTRY=1`). Default `npm run build` is unchanged and React-only. Note `build:vue` writes to `public/build`, so re-run `npm run build` before deploying.
+- `resources/css/vue.css` holds the BD palette (`--color-bd-*`, placeholder values from Chakra orange) with separate light (`500`) and dark (`400`) primary shades via `--ui-primary`.
+- `resources/js/layouts/AppShell.vue` (UApp + error boundary) and `resources/js/stores/app.js` (Pinia example) back the `_migration/HealthCheck.vue` page.
+- Remaining: wire a dev-only route to render `_migration/HealthCheck`, final BD palette, first real page slice.
