@@ -6,15 +6,20 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "lint": "npx eslint resources/js/ --ext .js,.jsx",
+        "dev:vue": "VUE_ENTRY=1 vite",
+        "build:vue": "VUE_ENTRY=1 vite build",
+        "lint": "npx eslint resources/js/ --ext .js,.jsx,.vue",
         "prepare": "husky install || true"
     },
     "devDependencies": {
+        "@tailwindcss/vite": "^4.3.3",
         "@trivago/prettier-plugin-sort-imports": "^4.3.0",
         "@vitejs/plugin-react": "^4.2.1",
+        "@vitejs/plugin-vue": "^6.0.10",
         "axios": "^1.6.4",
         "eslint": "^8.56.0",
         "eslint-plugin-react": "^7.33.2",
+        "eslint-plugin-vue": "^9.33.0",
         "husky": "^9.0.11",
         "laravel-vite-plugin": "^1.0.1",
         "lint-staged": "^16.0",
@@ -26,6 +31,8 @@
         "@emotion/react": "^11.11.3",
         "@emotion/styled": "^11.11.0",
         "@inertiajs/react": "^2.0.0",
+        "@inertiajs/vue3": "^3.9.1",
+        "@nuxt/ui": "^4.12.0",
         "@turf/bearing": "^6.5.0",
         "@turf/distance": "^6.5.0",
         "@turf/great-circle": "^6.5.0",
@@ -37,12 +44,15 @@
         "lucide-react": "^0.308.0",
         "maplibre-gl": "^6.0",
         "maplibregl-mapbox-request-transformer": "^0.0.2",
+        "pinia": "^4.1.0",
         "posthog-js": "^1.116.3",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-error-boundary": "^4.0.13",
         "react-map-gl": "^8.0",
-        "showdown": "^2.1.0"
+        "showdown": "^2.1.0",
+        "tailwindcss": "^4.3.3",
+        "vue": "^3.5.44"
     },
     "optionalDependencies": {
         "@rollup/rollup-linux-x64-gnu": "4.9.5"
